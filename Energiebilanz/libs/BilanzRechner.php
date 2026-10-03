@@ -127,19 +127,27 @@ final class BilanzRechner
             $waermeZiel = $ww ? 'waerme_ww' : 'waerme_heiz';
             $stand['summe'][$waermeZiel] = (float)($stand['summe'][$waermeZiel] ?? 0.0) + $zuwachs['wpwaerme'];
         }
-        // Abgeleitete Zähler nur mit positiven Zuwächsen fortschreiben. Sonst fiele
-        // etwa die PV nachts um die Wandlungsverluste (Speicher entlädt mehr DC, als
-        // der Wechselrichter als AC abgibt) — und ein Zähler darf nie fallen.
+        // Abgeleitete Zähler: ein Rohwert, der fallen darf, und ein Ausgang, der nur
+        // dessen Höchststand übernimmt. So fällt kein Zähler (die PV nachts um die
+        // Wandlungsverluste des Wechselrichters), und kleine Rücksprünge, weil die
+        // Eingangszähler zeitversetzt aktualisieren, werden erst zurückgezahlt,
+        // statt sich als Rauschen nach oben aufzusummieren.
+        $bz = self::bilanz($zuwachs, $optionen['speicherImAc']);
         if (!isset($stand['aus']) || !is_array($stand['aus'])) {
             $start = self::bilanz($stand['summe'], $optionen['speicherImAc']);
             $stand['aus'] = [];
+            $stand['roh'] = [];
             foreach (self::ABGELEITET as $k) {
-                $stand['aus'][$k] = (float)$start[$k] - (float)(self::bilanz($zuwachs, $optionen['speicherImAc'])[$k] ?? 0.0);
+                $stand['aus'][$k] = (float)$start[$k];
+                $stand['roh'][$k] = (float)$start[$k];
             }
-        }
-        $bz = self::bilanz($zuwachs, $optionen['speicherImAc']);
-        foreach (self::ABGELEITET as $k) {
-            $stand['aus'][$k] = (float)($stand['aus'][$k] ?? 0.0) + max(0.0, (float)$bz[$k]);
+        } else {
+            foreach (self::ABGELEITET as $k) {
+                $stand['roh'][$k] = (float)($stand['roh'][$k] ?? $stand['aus'][$k]) + (float)$bz[$k];
+                if ($stand['roh'][$k] > (float)$stand['aus'][$k]) {
+                    $stand['aus'][$k] = $stand['roh'][$k];
+                }
+            }
         }
 
         // Geld aus den Zuwächsen zum JETZT gültigen Preis: eine Preisänderung
@@ -154,6 +162,11 @@ final class BilanzRechner
         if ($stand['tag'] !== $heute) {
             $stand['tag'] = $heute;
             $stand['tagStart'] = $stand['summe'];
+            // Mitternacht: offene Rücksprünge verfallen, damit Verluste der Nacht
+            // nicht die PV des nächsten Vormittags aufzehren.
+            if (isset($stand['aus'])) {
+                $stand['roh'] = $stand['aus'];
+            }
         }
         return $stand;
     }

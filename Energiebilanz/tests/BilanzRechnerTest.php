@@ -130,5 +130,14 @@ pruefe('Nacht: Hausverbrauch = AC + Bezug = 3,82 kWh', $r($a1['haus'] - $a0['hau
 $l = BilanzRechner::leistung(['pv1' => 3663, 'pv2' => 0, 'netz' => 165, 'speicher' => -3705], true);
 pruefe('Nacht-Leistung: PV 0 statt −42, Haus = AC + Netz', [$l['pv'], $l['haus']], [0.0, 3828.0]);
 
+// ── Zeitversetzte Zähler: Rauschen darf sich nicht aufsummieren ────────────
+$j = $n1;
+for ($i = 1; $i <= 20; $i++) {
+    // pv1 springt zuerst +0,01, der Entladezähler zieht im nächsten Schritt nach
+    $j = BilanzRechner::schritt($j, $m(['pv1' => 1003.66 + $i * 0.01, 'pv2' => 0, 'bezug' => 100.16, 'einspeisung' => 50, 'laden' => 0, 'entladen' => 3.705 + ($i - 1) * 0.01], ['laden', 'entladen']), $t0 + 3600 + $i * 20, $opt);
+    $j = BilanzRechner::schritt($j, $m(['pv1' => 1003.66 + $i * 0.01, 'pv2' => 0, 'bezug' => 100.16, 'einspeisung' => 50, 'laden' => 0, 'entladen' => 3.705 + $i * 0.01], ['laden', 'entladen']), $t0 + 3610 + $i * 20, $opt);
+}
+pruefe('Rauschen: PV steigt über 20 Wechsel höchstens um einen Schritt', $r(BilanzRechner::ausgaenge($j, true)['pv'] - $a1['pv']) <= 0.01, true);
+
 printf("\n%d Zusicherungen, %d Abweichung(en).\n", $anzahl, $fehler);
 exit($fehler === 0 ? 0 : 1);
