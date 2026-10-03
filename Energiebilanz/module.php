@@ -47,7 +47,7 @@ class Energiebilanz extends IPSModuleStrict
         'WALLBOX_KWH' => ['Wallbox', 'kwh', 18], 'REST_KWH' => ['House without heat pump and wallbox', 'kwh', 19],
         'KOSTEN_EUR' => ['Grid costs', 'eur', 30], 'ERLOES_EUR' => ['Feed-in revenue', 'eur', 31],
         'ERSPARNIS_EUR' => ['Savings from own power', 'eur', 32],
-        'PV_W' => ['PV power', 'w', 40], 'NETZ_W' => ['Grid power', 'w', 41], 'SPEICHER_W' => ['Battery power', 'w', 42],
+        'PV_W' => ['PV power', 'w', 40], 'PV1_W' => ['PV power main system', 'w', 38], 'PV2_W' => ['PV power second system', 'w', 39], 'NETZ_W' => ['Grid power', 'w', 41], 'SPEICHER_W' => ['Battery power', 'w', 42],
         'HAUS_W' => ['House power', 'w', 43], 'WP_W' => ['Heat pump power', 'w', 44], 'WALLBOX_W' => ['Wallbox power', 'w', 45],
         'REST_W' => ['House power without heat pump and wallbox', 'w', 46],
         'AUTARKIE' => ['Self-sufficiency today', 'pct', 50], 'EIGENQUOTE' => ['Self-consumption rate today', 'pct', 51],
@@ -214,6 +214,11 @@ class Energiebilanz extends IPSModuleStrict
         foreach ($leistung as $k => $wert) {
             $this->Setzen(strtoupper($k) . '_W', round($wert, 1));
         }
+        // Die beiden Anlagen einzeln (z. B. für eine Energieverteilung): die
+        // Hauptanlage als reine Erzeugung, beim Hybrid also AC + Laden.
+        $pv1 = (float)($w['pv1'] ?? 0.0) + ($opt['speicherImAc'] ? (float)($w['speicher'] ?? 0.0) : 0.0);
+        $this->Setzen('PV1_W', round($pv1, 1));
+        $this->Setzen('PV2_W', round((float)($w['pv2'] ?? 0.0), 1));
         // Einspeisung ja/nein mit Schwelle: zwischen −Schwelle und +Schwelle bleibt
         // der letzte Zustand stehen, sonst flattert die Anzeige um 0 W.
         if ($w['netz'] !== null) {

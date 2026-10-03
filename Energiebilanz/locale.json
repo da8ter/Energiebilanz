@@ -68,7 +68,9 @@
             "true means hot water": "true bedeutet Warmwasser",
             "Running from": "Läuft ab",
             "Heat pump electricity total": "Wärmepumpe Strom gesamt",
-            "Heat pump heat total": "Wärmepumpe Wärme gesamt"
+            "Heat pump heat total": "Wärmepumpe Wärme gesamt",
+            "PV power main system": "PV-Leistung Hauptanlage",
+            "PV power second system": "PV-Leistung zweite Anlage"
         }
     }
 }
