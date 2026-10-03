@@ -47,7 +47,9 @@
             "Set up archive logging for the outputs": "Archivierung der Ausgänge einrichten",
             "Calculate now": "Jetzt rechnen",
             "Active": "Aktiv",
-            "No meters selected": "Keine Zähler gewählt"
+            "No meters selected": "Keine Zähler gewählt",
+            "Feeding in": "Einspeisung",
+            "Threshold for feeding in / import": "Schwelle Einspeisung / Bezug"
         }
     }
 }

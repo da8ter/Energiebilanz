@@ -82,12 +82,22 @@ class Energiebilanz extends IPSModuleStrict
         $this->RegisterPropertyFloat('PreisEinspeisung', 0.08);
         $this->RegisterPropertyInteger('Intervall', 10);
         $this->RegisterPropertyBoolean('Archivieren', true);
+        $this->RegisterPropertyFloat('SchwelleW', 20.0);
         $this->RegisterAttributeString('Zustand', '');
         $this->RegisterTimer('Rechnen', 0, 'EBIL_Rechnen($_IPS[\'TARGET\']);');
 
         foreach (self::AUSGABE as $ident => [$name, $typ, $pos]) {
             $this->RegisterVariableFloat($ident, $this->Translate($name), $this->Darstellung($typ), $pos);
         }
+        $this->RegisterVariableBoolean('EINSPEISUNG', $this->Translate('Feeding in'), [
+            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'OPTIONS'      => json_encode([
+                ['Value' => false, 'Caption' => $this->Translate('Grid import'), 'IconActive' => true, 'IconValue' => 'HollowArrowDown',
+                 'ColorActive' => true, 'ColorValue' => 0xFF6B6B, 'ContentColorActive' => false, 'ContentColorValue' => -1],
+                ['Value' => true, 'Caption' => $this->Translate('Feeding in'), 'IconActive' => true, 'IconValue' => 'HollowArrowUp',
+                 'ColorActive' => true, 'ColorValue' => 0x2ECC71, 'ContentColorActive' => false, 'ContentColorValue' => -1],
+            ], JSON_UNESCAPED_UNICODE),
+        ], 47);
     }
 
     /** Namen nachziehen, wenn sie sich im Modul geändert haben (RegisterVariable* benennt nicht um). */
@@ -178,8 +188,21 @@ class Energiebilanz extends IPSModuleStrict
             $wert = $this->Lesen($this->ReadPropertyInteger('W_' . $rolle));
             $w[$rolle] = $wert === null ? null : $wert * $this->ReadPropertyFloat('Faktor_' . $rolle);
         }
-        foreach (BilanzRechner::leistung($w, $opt['speicherImAc']) as $k => $wert) {
+        $leistung = BilanzRechner::leistung($w, $opt['speicherImAc']);
+        foreach ($leistung as $k => $wert) {
             $this->Setzen(strtoupper($k) . '_W', round($wert, 1));
+        }
+        // Einspeisung ja/nein mit Schwelle: zwischen −Schwelle und +Schwelle bleibt
+        // der letzte Zustand stehen, sonst flattert die Anzeige um 0 W.
+        if ($w['netz'] !== null) {
+            $schwelle = abs($this->ReadPropertyFloat('SchwelleW'));
+            $id = @$this->GetIDForIdent('EINSPEISUNG');
+            if ($id !== false && $id > 0) {
+                $neu = $leistung['netz'] < -$schwelle ? true : ($leistung['netz'] > $schwelle ? false : GetValueBoolean($id));
+                if ($neu !== GetValueBoolean($id)) {
+                    $this->SetValue('EINSPEISUNG', $neu);
+                }
+            }
         }
         $q = BilanzRechner::tagesquoten($stand, $opt['speicherImAc']);
         $this->Setzen('AUTARKIE', round((float)($q['autarkie'] ?? 0.0), 1));
@@ -206,9 +229,12 @@ class Energiebilanz extends IPSModuleStrict
         $roh = $this->ReadAttributeString('Zustand');
         $stand = $roh !== '' ? (json_decode($roh, true) ?: BilanzRechner::neu()) : BilanzRechner::neu();
         foreach ($neu as $rolle => $wert) {
-            if (in_array($rolle, BilanzRechner::ZAEHLER, true) || array_key_exists($rolle, $stand['geld'])) {
-                $ziel = in_array($rolle, BilanzRechner::ZAEHLER, true) ? 'summe' : 'geld';
-                $stand[$ziel][$rolle] = (float)$wert;
+            if (in_array($rolle, BilanzRechner::ZAEHLER, true)) {
+                $stand['summe'][$rolle] = (float)$wert;
+                // Neu verankern: der nächste Schritt nimmt den aktuellen Stand als Basis.
+                unset($stand['basis'][$rolle], $stand['zeit'][$rolle], $stand['abweichung'][$rolle]);
+            } elseif (array_key_exists($rolle, $stand['geld'])) {
+                $stand['geld'][$rolle] = (float)$wert;
             }
         }
         $stand['tag'] = '';     // Tagesanfang neu setzen, sonst springen die Quoten
@@ -323,6 +349,7 @@ class Energiebilanz extends IPSModuleStrict
                     ['type' => 'CheckBox', 'name' => 'SpeicherImAc', 'caption' => $this->Translate('Battery is included in the inverter AC meter (hybrid inverter)')],
                     ['type' => 'NumberSpinner', 'name' => 'PreisBezug', 'caption' => $this->Translate('Grid price (€/kWh)'), 'digits' => 4],
                     ['type' => 'NumberSpinner', 'name' => 'PreisEinspeisung', 'caption' => $this->Translate('Feed-in tariff (€/kWh)'), 'digits' => 4],
+                    ['type' => 'NumberSpinner', 'name' => 'SchwelleW', 'caption' => $this->Translate('Threshold for feeding in / import'), 'suffix' => ' W', 'digits' => 0],
                     ['type' => 'NumberSpinner', 'name' => 'Intervall', 'caption' => $this->Translate('Interval'), 'suffix' => ' s', 'minimum' => 5],
                     ['type' => 'CheckBox', 'name' => 'Archivieren', 'caption' => $this->Translate('Set up archive logging for the outputs')],
                 ]],
