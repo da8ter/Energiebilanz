@@ -70,7 +70,14 @@
             "Heat pump electricity total": "Wärmepumpe Strom gesamt",
             "Heat pump heat total": "Wärmepumpe Wärme gesamt",
             "PV power main system": "PV-Leistung Hauptanlage",
-            "PV power second system": "PV-Leistung zweite Anlage"
+            "PV power second system": "PV-Leistung zweite Anlage",
+            "Heat pump compressor": "Wärmepumpe Verdichter",
+            "Heat pump heating rod": "Wärmepumpe Heizstab",
+            "Heating rod": "Heizstab",
+            "Heating rod power": "Heizstab Leistung",
+            "Heat pump heat produced (without separate heat meters)": "Wärmepumpe Wärme gesamt (ohne getrennte Wärmezähler)",
+            "Heat meter heating": "Wärmemengenzähler Heizung",
+            "Heat meter hot water": "Wärmemengenzähler Warmwasser"
         }
     }
 }

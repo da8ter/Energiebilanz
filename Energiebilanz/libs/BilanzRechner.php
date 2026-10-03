@@ -24,7 +24,10 @@ declare(strict_types=1);
 final class BilanzRechner
 {
     /** Eingangszähler in kWh, in dieser Reihenfolge im Zustand. */
-    public const ZAEHLER = ['pv1', 'pv2', 'bezug', 'einspeisung', 'laden', 'entladen', 'wp', 'wallbox', 'wpwaerme'];
+    /** wp = Verdichter; heizstab = elektrischer Zuheizer; wpwaerme = Wärme gesamt (wenn keine
+     *  getrennten Wärmezähler); waermeheiz/waermeww = Wärmemengenzähler Heizung/Warmwasser. */
+    public const ZAEHLER = ['pv1', 'pv2', 'bezug', 'einspeisung', 'laden', 'entladen', 'wp', 'wallbox', 'wpwaerme',
+                            'heizstab', 'waermeheiz', 'waermeww'];
 
     /** Aufteilung der Wärmepumpe nach Betriebsart (Summen in kWh). */
     public const WP_TEILE = ['wp_heiz', 'wp_ww', 'wp_standby', 'waerme_heiz', 'waerme_ww'];
@@ -107,8 +110,20 @@ final class BilanzRechner
         $aktiv = ($optionen['wpAktiv'] ?? true) === true;
         $stromZiel = $ww ? 'wp_ww' : ($aktiv ? 'wp_heiz' : 'wp_standby');
         $stand['summe'][$stromZiel] = (float)($stand['summe'][$stromZiel] ?? 0.0) + $zuwachs['wp'];
-        $waermeZiel = $ww ? 'waerme_ww' : 'waerme_heiz';
-        $stand['summe'][$waermeZiel] = (float)($stand['summe'][$waermeZiel] ?? 0.0) + $zuwachs['wpwaerme'];
+        // Der Heizstab heizt immer — nach Betriebsart Heizen oder Warmwasser, nie Stand-by.
+        $stabZiel = $ww ? 'wp_ww' : 'wp_heiz';
+        $stand['summe'][$stabZiel] = (float)($stand['summe'][$stabZiel] ?? 0.0) + $zuwachs['heizstab'];
+        // Wärme: gibt es getrennte Wärmemengenzähler, zählen sie direkt (genauer als
+        // die Aufteilung nach Betriebsart) und ergeben zusammen die Wärme gesamt.
+        $mitZaehlern = ($messung['waermeheiz']['wert'] ?? null) !== null || ($messung['waermeww']['wert'] ?? null) !== null;
+        if ($mitZaehlern) {
+            $stand['summe']['waerme_heiz'] = (float)($stand['summe']['waerme_heiz'] ?? 0.0) + $zuwachs['waermeheiz'];
+            $stand['summe']['waerme_ww'] = (float)($stand['summe']['waerme_ww'] ?? 0.0) + $zuwachs['waermeww'];
+            $stand['summe']['wpwaerme'] = (float)($stand['summe']['wpwaerme'] ?? 0.0) + $zuwachs['waermeheiz'] + $zuwachs['waermeww'];
+        } else {
+            $waermeZiel = $ww ? 'waerme_ww' : 'waerme_heiz';
+            $stand['summe'][$waermeZiel] = (float)($stand['summe'][$waermeZiel] ?? 0.0) + $zuwachs['wpwaerme'];
+        }
         // Geld aus den Zuwächsen zum JETZT gültigen Preis: eine Preisänderung
         // wirkt ab sofort und schreibt keine Vergangenheit um.
         $b = self::bilanz($zuwachs, $optionen['speicherImAc']);
@@ -151,8 +166,10 @@ final class BilanzRechner
             'laden'       => $g('laden'),
             'entladen'    => $g('entladen'),
             'wp'          => $g('wp'),
+            'heizstab'    => $g('heizstab'),
+            'wpgesamt'    => $g('wp') + $g('heizstab'),
             'wallbox'     => $g('wallbox'),
-            'rest'        => $haus - $g('wp') - $g('wallbox'),
+            'rest'        => $haus - $g('wp') - $g('heizstab') - $g('wallbox'),
         ];
     }
 
@@ -177,11 +194,12 @@ final class BilanzRechner
     {
         $s = $stand['summe'] ?? [];
         $t = $stand['tagStart'] ?? [];
-        $stromHeute = (float)($s['wp'] ?? 0) - (float)($t['wp'] ?? 0);
+        $strom = static fn(array $x): float => (float)($x['wp'] ?? 0) + (float)($x['heizstab'] ?? 0);
+        $stromHeute = $strom($s) - $strom($t);
         $waermeHeute = (float)($s['wpwaerme'] ?? 0) - (float)($t['wpwaerme'] ?? 0);
         return [
             'heute'  => $stromHeute > 0.2 ? $waermeHeute / $stromHeute : null,
-            'gesamt' => (float)($s['wp'] ?? 0) > 1 ? (float)($s['wpwaerme'] ?? 0) / (float)$s['wp'] : null,
+            'gesamt' => $strom($s) > 1 ? (float)($s['wpwaerme'] ?? 0) / $strom($s) : null,
         ];
     }
 
@@ -216,6 +234,7 @@ final class BilanzRechner
         $pv = $speicherImAc ? $pvRoh + $g('speicher') : $pvRoh;
         $haus = $pv + $g('netz') - $g('speicher');
         return ['pv' => $pv, 'netz' => $g('netz'), 'speicher' => $g('speicher'), 'haus' => $haus,
-                'wp' => $g('wp'), 'wallbox' => $g('wallbox'), 'rest' => $haus - $g('wp') - $g('wallbox')];
+                'wp' => $g('wp'), 'heizstab' => $g('heizstab'), 'wallbox' => $g('wallbox'),
+                'rest' => $haus - $g('wp') - $g('heizstab') - $g('wallbox')];
     }
 }

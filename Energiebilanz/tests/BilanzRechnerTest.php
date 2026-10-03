@@ -29,7 +29,7 @@ $r = static fn(float $x): float => round($x, 3);
 
 $opt = ['speicherImAc' => true, 'preisBezug' => 0.30, 'preisEinspeisung' => 0.08];
 $m = static fn(array $w, array $tages = []) => array_map(
-    static fn($k) => ['wert' => $w[$k] ?? null, 'tageszaehler' => in_array($k, $tages, true), 'maxKw' => ['pv1' => 15, 'pv2' => 2, 'bezug' => 45, 'einspeisung' => 30, 'laden' => 10, 'entladen' => 10, 'wp' => 15, 'wallbox' => 25, 'wpwaerme' => 40][$k]],
+    static fn($k) => ['wert' => $w[$k] ?? null, 'tageszaehler' => in_array($k, $tages, true), 'maxKw' => ['pv1' => 15, 'pv2' => 2, 'bezug' => 45, 'einspeisung' => 30, 'laden' => 10, 'entladen' => 10, 'wp' => 15, 'wallbox' => 25, 'wpwaerme' => 40, 'heizstab' => 10, 'waermeheiz' => 40, 'waermeww' => 40][$k]],
     array_combine(BilanzRechner::ZAEHLER, BilanzRechner::ZAEHLER)
 );
 $t0 = mktime(7, 0, 0, 10, 3, 2026);
@@ -103,6 +103,19 @@ pruefe('WP: Teile ergeben die Summe', $r($a['wp_heiz'] + $a['wp_ww'] + $a['wp_st
 pruefe('WP: Arbeitszahl gesamt 6,5 / 2,02', round(BilanzRechner::arbeitszahlen($w3)['gesamt'], 2), 3.22);
 $w4 = BilanzRechner::schritt($w3, $m(['wp' => 102.0]), $t0 + 10810, $opt + ['wpModusWw' => false, 'wpAktiv' => true]);
 pruefe('WP: fallender Zähler wird nicht gebucht', $r(BilanzRechner::ausgaenge($w4, true)['wp_heiz']), 1.0);
+
+// ── Heizstab und Wärmemengenzähler ─────────────────────────────────────────
+$h0 = BilanzRechner::schritt(BilanzRechner::neu(), $m(['wp' => 100, 'heizstab' => 50, 'waermeheiz' => 1000, 'waermeww' => 200, 'bezug' => 10, 'pv1' => 5]), $t0, $opt);
+$h1 = BilanzRechner::schritt($h0, $m(['wp' => 101, 'heizstab' => 53, 'waermeheiz' => 1006, 'waermeww' => 200, 'bezug' => 14, 'pv1' => 5]), $t0 + 3600, $opt + ['wpModusWw' => false, 'wpAktiv' => true]);
+$h2 = BilanzRechner::schritt($h1, $m(['wp' => 101.5, 'heizstab' => 53, 'waermeheiz' => 1006, 'waermeww' => 201.5, 'bezug' => 14.5, 'pv1' => 5]), $t0 + 7200, $opt + ['wpModusWw' => true, 'wpAktiv' => true]);
+$a = BilanzRechner::ausgaenge($h2, true);
+pruefe('Heizstab: eigener Zähler 3, WP gesamt 4,5', [$r($a['heizstab']), $r($a['wpgesamt'])], [3.0, 4.5]);
+pruefe('Heizstab zählt zu Heizen: Strom Heizen 1 + 3', $r($a['wp_heiz']), 4.0);
+pruefe('Wärme direkt aus den Zählern: Heizen 6, Warmwasser 1,5, gesamt 7,5', [$r($a['waerme_heiz']), $r($a['waerme_ww']), $r($a['wpwaerme'])], [6.0, 1.5, 7.5]);
+pruefe('Arbeitszahl mit Heizstab: 7,5 / 4,5', round(BilanzRechner::arbeitszahlen($h2)['gesamt'], 2), 1.67);
+pruefe('Rest zieht Verdichter und Heizstab ab: Haus 4,5 − 4,5 = 0', $r($a['rest']), 0.0);
+$l = BilanzRechner::leistung(['pv1' => 0, 'netz' => 4000, 'wp' => 1000, 'heizstab' => 3000], false);
+pruefe('Leistung: Rest ohne WP und Heizstab', [$l['heizstab'], $l['rest']], [3000.0, 0.0]);
 
 printf("\n%d Zusicherungen, %d Abweichung(en).\n", $anzahl, $fehler);
 exit($fehler === 0 ? 0 : 1);

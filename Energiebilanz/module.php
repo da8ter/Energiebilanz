@@ -26,15 +26,18 @@ class Energiebilanz extends IPSModuleStrict
         'einspeisung' => ['Grid export', false, 30.0],
         'laden'       => ['Battery charged', true, 10.0],
         'entladen'    => ['Battery discharged', true, 10.0],
-        'wp'          => ['Heat pump', false, 15.0],
+        'wp'          => ['Heat pump compressor', false, 15.0],
+        'heizstab'    => ['Heat pump heating rod', false, 12.0],
         'wallbox'     => ['Wallbox', false, 25.0],
-        'wpwaerme'    => ['Heat pump heat produced', false, 40.0],
+        'wpwaerme'    => ['Heat pump heat produced (without separate heat meters)', false, 40.0],
+        'waermeheiz'  => ['Heat meter heating', false, 40.0],
+        'waermeww'    => ['Heat meter hot water', false, 40.0],
     ];
 
     /** Leistungs-Eingänge: Rolle => Beschriftung. */
     private const LEISTUNG = [
         'pv1' => 'PV inverter AC power', 'pv2' => 'PV second system power', 'netz' => 'Grid power (+ import)',
-        'speicher' => 'Battery power (+ charging)', 'wp' => 'Heat pump power', 'wallbox' => 'Wallbox power',
+        'speicher' => 'Battery power (+ charging)', 'wp' => 'Heat pump power', 'heizstab' => 'Heating rod power', 'wallbox' => 'Wallbox power',
         'waerme_heiz' => 'Heat pump heating output', 'waerme_ww' => 'Heat pump hot water output',
     ];
 
@@ -43,12 +46,13 @@ class Energiebilanz extends IPSModuleStrict
         'PV_KWH' => ['PV generation', 'kwh', 10], 'HAUS_KWH' => ['House consumption', 'kwh', 11],
         'EIGEN_KWH' => ['Self-consumption', 'kwh', 12], 'BEZUG_KWH' => ['Grid import', 'kwh', 13],
         'EINSPEISUNG_KWH' => ['Grid export', 'kwh', 14], 'LADEN_KWH' => ['Battery charged', 'kwh', 15],
-        'ENTLADEN_KWH' => ['Battery discharged', 'kwh', 16], 'WP_KWH' => ['Heat pump electricity total', 'kwh', 17],
+        'ENTLADEN_KWH' => ['Battery discharged', 'kwh', 16], 'WP_KWH' => ['Heat pump electricity total', 'kwh', 17], 'WP_VERDICHTER_KWH' => ['Heat pump compressor', 'kwh', 20],
+        'HEIZSTAB_KWH' => ['Heating rod', 'kwh', 21],
         'WALLBOX_KWH' => ['Wallbox', 'kwh', 18], 'REST_KWH' => ['House without heat pump and wallbox', 'kwh', 19],
         'KOSTEN_EUR' => ['Grid costs', 'eur', 30], 'ERLOES_EUR' => ['Feed-in revenue', 'eur', 31],
         'ERSPARNIS_EUR' => ['Savings from own power', 'eur', 32],
         'PV_W' => ['PV power', 'w', 40], 'PV1_W' => ['PV power main system', 'w', 38], 'PV2_W' => ['PV power second system', 'w', 39], 'NETZ_W' => ['Grid power', 'w', 41], 'SPEICHER_W' => ['Battery power', 'w', 42],
-        'HAUS_W' => ['House power', 'w', 43], 'WP_W' => ['Heat pump power', 'w', 44], 'WALLBOX_W' => ['Wallbox power', 'w', 45],
+        'HAUS_W' => ['House power', 'w', 43], 'WP_W' => ['Heat pump power', 'w', 44], 'HEIZSTAB_W' => ['Heating rod power', 'w', 44], 'WALLBOX_W' => ['Wallbox power', 'w', 45],
         'REST_W' => ['House power without heat pump and wallbox', 'w', 46],
         'AUTARKIE' => ['Self-sufficiency today', 'pct', 50], 'EIGENQUOTE' => ['Self-consumption rate today', 'pct', 51],
         'WP_WAERME_KWH' => ['Heat pump heat total', 'kwh', 60], 'WP_STROM_HEIZ_KWH' => ['Heat pump power for heating', 'kwh', 61],
@@ -69,8 +73,8 @@ class Energiebilanz extends IPSModuleStrict
     /** Ausgangszähler-Ident => Schlüssel im Rechenkern. */
     private const ZAEHLER_AUSGANG = [
         'PV_KWH' => 'pv', 'HAUS_KWH' => 'haus', 'EIGEN_KWH' => 'eigen', 'BEZUG_KWH' => 'bezug',
-        'EINSPEISUNG_KWH' => 'einspeisung', 'LADEN_KWH' => 'laden', 'ENTLADEN_KWH' => 'entladen', 'WP_KWH' => 'wp',
-        'WALLBOX_KWH' => 'wallbox', 'REST_KWH' => 'rest', 'KOSTEN_EUR' => 'kosten', 'ERLOES_EUR' => 'erloes',
+        'EINSPEISUNG_KWH' => 'einspeisung', 'LADEN_KWH' => 'laden', 'ENTLADEN_KWH' => 'entladen', 'WP_KWH' => 'wpgesamt',
+        'WALLBOX_KWH' => 'wallbox', 'WP_VERDICHTER_KWH' => 'wp', 'HEIZSTAB_KWH' => 'heizstab', 'REST_KWH' => 'rest', 'KOSTEN_EUR' => 'kosten', 'ERLOES_EUR' => 'erloes',
         'ERSPARNIS_EUR' => 'ersparnis',
         'WP_WAERME_KWH' => 'wpwaerme', 'WP_STROM_HEIZ_KWH' => 'wp_heiz', 'WP_STROM_WW_KWH' => 'wp_ww',
         'WP_STROM_STANDBY_KWH' => 'wp_standby', 'WP_WAERME_HEIZ_KWH' => 'waerme_heiz', 'WP_WAERME_WW_KWH' => 'waerme_ww',
@@ -234,7 +238,9 @@ class Energiebilanz extends IPSModuleStrict
         // Wärmepumpe: Wärmeleistung der laufenden Betriebsart und COP daraus.
         $waermeW = $wwModus === true ? ($w['waerme_ww'] ?? null) : ($w['waerme_heiz'] ?? null);
         $this->Setzen('WP_WAERME_W', round((float)($waermeW ?? 0.0), 0));
-        $cop = ($waermeW !== null && $w['wp'] !== null && $w['wp'] >= $this->ReadPropertyFloat('WpAktivW')) ? $waermeW / $w['wp'] : 0.0;
+        // COP mit dem ganzen Strom: der Wärmezähler misst die Heizstab-Wärme mit.
+        $stromW = (float)($w['wp'] ?? 0.0) + (float)($w['heizstab'] ?? 0.0);
+        $cop = ($waermeW !== null && $stromW >= $this->ReadPropertyFloat('WpAktivW')) ? $waermeW / $stromW : 0.0;
         $this->Setzen('WP_COP', round(max(0.0, min(10.0, $cop)), 2));
         $az = BilanzRechner::arbeitszahlen($stand);
         $this->Setzen('WP_AZ_HEUTE', round((float)($az['heute'] ?? 0.0), 2));

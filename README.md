@@ -14,11 +14,11 @@ Tageszähler, die um Mitternacht auf 0 fallen (z. B. Speicher geladen/entladen),
 
 ## Wärmepumpe
 
-Aus Strom gesamt, Wärme gesamt und der Betriebsart (Bool: Warmwasser/Heizen) führt die Instanz:
+Aus Verdichter- und Heizstab-Strom, den Wärmemengenzählern Heizung und Warmwasser (oder ersatzweise einer Wärme gesamt) und der Betriebsart (Bool: Warmwasser/Heizen) führt die Instanz:
 
-- Strom und Wärme gesamt sowie getrennt nach **Heizen** und **Warmwasser**
+- Strom gesamt, Verdichter und **Heizstab** getrennt; Strom und Wärme nach **Heizen** und **Warmwasser** (der Heizstab zählt zur jeweiligen Betriebsart, nie zu Stand-by)
 - **Stand-by-Strom**: im Heizmodus unterhalb der Schwelle *Läuft ab* (Vorgabe 200 W) – das Umschaltventil steht in Ruhe auf Heizen, ohne diese Trennung landete der Ruheverbrauch beim Heizen
-- **COP aktuell** aus Wärmeleistung der laufenden Betriebsart und elektrischer Leistung
+- **COP aktuell** aus Wärmeleistung der laufenden Betriebsart und elektrischer Leistung von Verdichter und Heizstab (der Wärmezähler misst die Heizstab-Wärme mit)
 - **Arbeitszahl heute** und **Arbeitszahl gesamt**; Monat und Jahr ergeben sich aus dem Archiv
 
 Gebucht wird jeder Zuwachs nach der Betriebsart, die in dem Moment gilt. Damit gibt es keine Rücksprünge wie bei „gesamt − Warmwasser“.
