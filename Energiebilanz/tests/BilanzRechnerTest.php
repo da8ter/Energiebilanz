@@ -118,7 +118,8 @@ $l = BilanzRechner::leistung(['pv1' => 0, 'netz' => 4000, 'wp' => 1000, 'heizsta
 pruefe('Leistung: Rest ohne WP und Heizstab', [$l['heizstab'], $l['rest']], [3000.0, 0.0]);
 
 $az = BilanzRechner::arbeitszahlen($h2);
-pruefe('Arbeitszahl Heizen 6/4, Warmwasser 1,5/0,5', [round($az['heiz_gesamt'], 2), round($az['ww_gesamt'], 2)], [1.5, 3.0]);
+pruefe('Arbeitszahl Heizen gesamt 6/4 = 1,5; Warmwasser unter 1 kWh Strom noch leer', [round($az['heiz_gesamt'], 2), $az['ww_gesamt']], [1.5, null]);
+pruefe('Arbeitszahl Warmwasser heute 1,5/0,5 = 3', round($az['ww_heute'], 2), 3.0);
 
 printf("\n%d Zusicherungen, %d Abweichung(en).\n", $anzahl, $fehler);
 exit($fehler === 0 ? 0 : 1);
