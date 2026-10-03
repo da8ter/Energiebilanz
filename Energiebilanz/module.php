@@ -28,12 +28,14 @@ class Energiebilanz extends IPSModuleStrict
         'entladen'    => ['Battery discharged', true, 10.0],
         'wp'          => ['Heat pump', false, 15.0],
         'wallbox'     => ['Wallbox', false, 25.0],
+        'wpwaerme'    => ['Heat pump heat produced', false, 40.0],
     ];
 
     /** Leistungs-Eingänge: Rolle => Beschriftung. */
     private const LEISTUNG = [
         'pv1' => 'PV inverter AC power', 'pv2' => 'PV second system power', 'netz' => 'Grid power (+ import)',
         'speicher' => 'Battery power (+ charging)', 'wp' => 'Heat pump power', 'wallbox' => 'Wallbox power',
+        'waerme_heiz' => 'Heat pump heating output', 'waerme_ww' => 'Heat pump hot water output',
     ];
 
     /** Ausgänge: Ident => [Name, Typ (kwh|eur|w|pct), Position]. */
@@ -41,7 +43,7 @@ class Energiebilanz extends IPSModuleStrict
         'PV_KWH' => ['PV generation', 'kwh', 10], 'HAUS_KWH' => ['House consumption', 'kwh', 11],
         'EIGEN_KWH' => ['Self-consumption', 'kwh', 12], 'BEZUG_KWH' => ['Grid import', 'kwh', 13],
         'EINSPEISUNG_KWH' => ['Grid export', 'kwh', 14], 'LADEN_KWH' => ['Battery charged', 'kwh', 15],
-        'ENTLADEN_KWH' => ['Battery discharged', 'kwh', 16], 'WP_KWH' => ['Heat pump', 'kwh', 17],
+        'ENTLADEN_KWH' => ['Battery discharged', 'kwh', 16], 'WP_KWH' => ['Heat pump electricity total', 'kwh', 17],
         'WALLBOX_KWH' => ['Wallbox', 'kwh', 18], 'REST_KWH' => ['House without heat pump and wallbox', 'kwh', 19],
         'KOSTEN_EUR' => ['Grid costs', 'eur', 30], 'ERLOES_EUR' => ['Feed-in revenue', 'eur', 31],
         'ERSPARNIS_EUR' => ['Savings from own power', 'eur', 32],
@@ -49,12 +51,19 @@ class Energiebilanz extends IPSModuleStrict
         'HAUS_W' => ['House power', 'w', 43], 'WP_W' => ['Heat pump power', 'w', 44], 'WALLBOX_W' => ['Wallbox power', 'w', 45],
         'REST_W' => ['House power without heat pump and wallbox', 'w', 46],
         'AUTARKIE' => ['Self-sufficiency today', 'pct', 50], 'EIGENQUOTE' => ['Self-consumption rate today', 'pct', 51],
+        'WP_WAERME_KWH' => ['Heat pump heat total', 'kwh', 60], 'WP_STROM_HEIZ_KWH' => ['Heat pump power for heating', 'kwh', 61],
+        'WP_STROM_WW_KWH' => ['Heat pump power for hot water', 'kwh', 62], 'WP_STROM_STANDBY_KWH' => ['Heat pump standby power', 'kwh', 63],
+        'WP_WAERME_HEIZ_KWH' => ['Heat for heating', 'kwh', 64], 'WP_WAERME_WW_KWH' => ['Heat for hot water', 'kwh', 65],
+        'WP_WAERME_W' => ['Heat pump heat output', 'w', 66], 'WP_COP' => ['Heat pump COP now', 'zahl', 67],
+        'WP_AZ_HEUTE' => ['Heat pump performance factor today', 'zahl', 68], 'WP_AZ_GESAMT' => ['Heat pump performance factor total', 'zahl', 69],
     ];
 
     /** Frühere Namen, die beim Update umbenannt werden — eigene Umbenennungen des Nutzers bleiben stehen. */
     private const ALTE_NAMEN = [
         'HAUS_W' => ['Hausleistung', 'House power'],
         'REST_W' => ['Hausleistung ohne Wärmepumpe und Wallbox', 'House power without heat pump and wallbox'],
+        'WP_KWH' => ['Wärmepumpe', 'Heat pump'],
+        'WP_WAERME_KWH' => ['Wärmepumpe Wärme', 'Heat pump heat'],
     ];
 
     /** Ausgangszähler-Ident => Schlüssel im Rechenkern. */
@@ -63,6 +72,8 @@ class Energiebilanz extends IPSModuleStrict
         'EINSPEISUNG_KWH' => 'einspeisung', 'LADEN_KWH' => 'laden', 'ENTLADEN_KWH' => 'entladen', 'WP_KWH' => 'wp',
         'WALLBOX_KWH' => 'wallbox', 'REST_KWH' => 'rest', 'KOSTEN_EUR' => 'kosten', 'ERLOES_EUR' => 'erloes',
         'ERSPARNIS_EUR' => 'ersparnis',
+        'WP_WAERME_KWH' => 'wpwaerme', 'WP_STROM_HEIZ_KWH' => 'wp_heiz', 'WP_STROM_WW_KWH' => 'wp_ww',
+        'WP_STROM_STANDBY_KWH' => 'wp_standby', 'WP_WAERME_HEIZ_KWH' => 'waerme_heiz', 'WP_WAERME_WW_KWH' => 'waerme_ww',
     ];
 
     public function Create(): void
@@ -83,6 +94,9 @@ class Energiebilanz extends IPSModuleStrict
         $this->RegisterPropertyInteger('Intervall', 10);
         $this->RegisterPropertyBoolean('Archivieren', true);
         $this->RegisterPropertyFloat('SchwelleW', 20.0);
+        $this->RegisterPropertyInteger('WpModus', 0);
+        $this->RegisterPropertyBoolean('WpModusWwIstTrue', true);
+        $this->RegisterPropertyFloat('WpAktivW', 200.0);
         $this->RegisterAttributeString('Zustand', '');
         $this->RegisterTimer('Rechnen', 0, 'EBIL_Rechnen($_IPS[\'TARGET\']);');
 
@@ -165,6 +179,19 @@ class Energiebilanz extends IPSModuleStrict
             }
             $stand['quelle'][$rolle] = $quelle;
         }
+        $w = [];
+        foreach (array_keys(self::LEISTUNG) as $rolle) {
+            $wert = $this->Lesen($this->ReadPropertyInteger('W_' . $rolle));
+            $w[$rolle] = $wert === null ? null : $wert * $this->ReadPropertyFloat('Faktor_' . $rolle);
+        }
+        $modusId = $this->ReadPropertyInteger('WpModus');
+        $wwModus = null;
+        if ($modusId > 0 && IPS_VariableExists($modusId)) {
+            $wwModus = ((bool)GetValue($modusId)) === $this->ReadPropertyBoolean('WpModusWwIstTrue');
+        }
+        $opt['wpModusWw'] = $wwModus;
+        $opt['wpAktiv'] = $w['wp'] === null || $w['wp'] >= $this->ReadPropertyFloat('WpAktivW');
+
         $messung = [];
         foreach (array_keys(self::ZAEHLER) as $rolle) {
             $messung[$rolle] = [
@@ -183,11 +210,6 @@ class Energiebilanz extends IPSModuleStrict
         foreach (self::ZAEHLER_AUSGANG as $ident => $schluessel) {
             $this->Setzen($ident, round((float)($aus[$schluessel] ?? 0.0), 4));
         }
-        $w = [];
-        foreach (array_keys(self::LEISTUNG) as $rolle) {
-            $wert = $this->Lesen($this->ReadPropertyInteger('W_' . $rolle));
-            $w[$rolle] = $wert === null ? null : $wert * $this->ReadPropertyFloat('Faktor_' . $rolle);
-        }
         $leistung = BilanzRechner::leistung($w, $opt['speicherImAc']);
         foreach ($leistung as $k => $wert) {
             $this->Setzen(strtoupper($k) . '_W', round($wert, 1));
@@ -204,6 +226,15 @@ class Energiebilanz extends IPSModuleStrict
                 }
             }
         }
+        // Wärmepumpe: Wärmeleistung der laufenden Betriebsart und COP daraus.
+        $waermeW = $wwModus === true ? ($w['waerme_ww'] ?? null) : ($w['waerme_heiz'] ?? null);
+        $this->Setzen('WP_WAERME_W', round((float)($waermeW ?? 0.0), 0));
+        $cop = ($waermeW !== null && $w['wp'] !== null && $w['wp'] >= $this->ReadPropertyFloat('WpAktivW')) ? $waermeW / $w['wp'] : 0.0;
+        $this->Setzen('WP_COP', round(max(0.0, min(10.0, $cop)), 2));
+        $az = BilanzRechner::arbeitszahlen($stand);
+        $this->Setzen('WP_AZ_HEUTE', round((float)($az['heute'] ?? 0.0), 2));
+        $this->Setzen('WP_AZ_GESAMT', round((float)($az['gesamt'] ?? 0.0), 2));
+
         $q = BilanzRechner::tagesquoten($stand, $opt['speicherImAc']);
         $this->Setzen('AUTARKIE', round((float)($q['autarkie'] ?? 0.0), 1));
         $this->Setzen('EIGENQUOTE', round((float)($q['eigenquote'] ?? 0.0), 1));
@@ -229,7 +260,9 @@ class Energiebilanz extends IPSModuleStrict
         $roh = $this->ReadAttributeString('Zustand');
         $stand = $roh !== '' ? (json_decode($roh, true) ?: BilanzRechner::neu()) : BilanzRechner::neu();
         foreach ($neu as $rolle => $wert) {
-            if (in_array($rolle, BilanzRechner::ZAEHLER, true)) {
+            if (in_array($rolle, BilanzRechner::WP_TEILE, true)) {
+                $stand['summe'][$rolle] = (float)$wert;
+            } elseif (in_array($rolle, BilanzRechner::ZAEHLER, true)) {
                 $stand['summe'][$rolle] = (float)$wert;
                 // Neu verankern: der nächste Schritt nimmt den aktuellen Stand als Basis.
                 unset($stand['basis'][$rolle], $stand['zeit'][$rolle], $stand['abweichung'][$rolle]);
@@ -272,6 +305,7 @@ class Energiebilanz extends IPSModuleStrict
         foreach (array_keys(self::LEISTUNG) as $rolle) {
             $ids[] = $this->ReadPropertyInteger('W_' . $rolle);
         }
+        $ids[] = $this->ReadPropertyInteger('WpModus');
         return array_values(array_unique(array_filter($ids, static fn(int $v): bool => $v > 0)));
     }
 
@@ -310,6 +344,7 @@ class Energiebilanz extends IPSModuleStrict
             'kwh' => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Electricity', 'SUFFIX' => ' kWh', 'DIGITS' => 2],
             'eur' => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Euro', 'SUFFIX' => ' €', 'DIGITS' => 2],
             'w'   => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Electricity', 'SUFFIX' => ' W', 'DIGITS' => 0],
+            'zahl' => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Gauge', 'DIGITS' => 2],
             default => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Intensity', 'SUFFIX' => ' %', 'DIGITS' => 1],
         };
     }
@@ -345,6 +380,12 @@ class Energiebilanz extends IPSModuleStrict
                 ['type' => 'ExpansionPanel', 'caption' => $this->Translate('Power (W)'), 'items' => array_merge([
                     ['type' => 'Label', 'caption' => $this->Translate('Factor: 1000 for kW, −1 to flip the sign. Grid: + is import. Battery: + is charging.')],
                 ], $leistung)],
+                ['type' => 'ExpansionPanel', 'caption' => $this->Translate('Heat pump'), 'items' => [
+                    ['type' => 'Label', 'caption' => $this->Translate('Electricity and heat are booked to heating or hot water by operating mode. In heating mode below the threshold the electricity counts as standby.')],
+                    ['type' => 'SelectVariable', 'name' => 'WpModus', 'caption' => $this->Translate('Operating mode (bool)'), 'width' => '420px', 'validVariableTypes' => [0]],
+                    ['type' => 'CheckBox', 'name' => 'WpModusWwIstTrue', 'caption' => $this->Translate('true means hot water')],
+                    ['type' => 'NumberSpinner', 'name' => 'WpAktivW', 'caption' => $this->Translate('Running from'), 'suffix' => ' W', 'digits' => 0],
+                ]],
                 ['type' => 'ExpansionPanel', 'caption' => $this->Translate('Calculation'), 'items' => [
                     ['type' => 'CheckBox', 'name' => 'SpeicherImAc', 'caption' => $this->Translate('Battery is included in the inverter AC meter (hybrid inverter)')],
                     ['type' => 'NumberSpinner', 'name' => 'PreisBezug', 'caption' => $this->Translate('Grid price (€/kWh)'), 'digits' => 4],

@@ -29,7 +29,7 @@ $r = static fn(float $x): float => round($x, 3);
 
 $opt = ['speicherImAc' => true, 'preisBezug' => 0.30, 'preisEinspeisung' => 0.08];
 $m = static fn(array $w, array $tages = []) => array_map(
-    static fn($k) => ['wert' => $w[$k] ?? null, 'tageszaehler' => in_array($k, $tages, true), 'maxKw' => ['pv1' => 15, 'pv2' => 2, 'bezug' => 45, 'einspeisung' => 30, 'laden' => 10, 'entladen' => 10, 'wp' => 15, 'wallbox' => 25][$k]],
+    static fn($k) => ['wert' => $w[$k] ?? null, 'tageszaehler' => in_array($k, $tages, true), 'maxKw' => ['pv1' => 15, 'pv2' => 2, 'bezug' => 45, 'einspeisung' => 30, 'laden' => 10, 'entladen' => 10, 'wp' => 15, 'wallbox' => 25, 'wpwaerme' => 40][$k]],
     array_combine(BilanzRechner::ZAEHLER, BilanzRechner::ZAEHLER)
 );
 $t0 = mktime(7, 0, 0, 10, 3, 2026);
@@ -90,6 +90,19 @@ pruefe('Leistung Hybrid: PV = AC + Laden, Haus = AC + pv2 + Netz', [$l['pv'], $l
 $q = BilanzRechner::tagesquoten(['summe' => ['pv1' => 10, 'bezug' => 1, 'einspeisung' => 4], 'tagStart' => []], false);
 pruefe('Autarkie 1 − 1/7 = 85,7 %, Eigenquote 6/10 = 60 %', [round($q['autarkie'], 1), round($q['eigenquote'], 1)], [85.7, 60.0]);
 pruefe('Ohne Verbrauch keine Quote', BilanzRechner::tagesquoten(BilanzRechner::neu(), true), ['autarkie' => null, 'eigenquote' => null]);
+
+// ── Wärmepumpe nach Betriebsart ────────────────────────────────────────────
+$w0 = BilanzRechner::schritt(BilanzRechner::neu(), $m(['wp' => 100.0, 'wpwaerme' => 300.0]), $t0, $opt);
+$w1 = BilanzRechner::schritt($w0, $m(['wp' => 101.0, 'wpwaerme' => 304.0]), $t0 + 3600, $opt + ['wpModusWw' => false, 'wpAktiv' => true]);
+$w2 = BilanzRechner::schritt($w1, $m(['wp' => 102.0, 'wpwaerme' => 306.5]), $t0 + 7200, $opt + ['wpModusWw' => true, 'wpAktiv' => true]);
+$w3 = BilanzRechner::schritt($w2, $m(['wp' => 102.02, 'wpwaerme' => 306.5]), $t0 + 10800, $opt + ['wpModusWw' => false, 'wpAktiv' => false]);
+$a = BilanzRechner::ausgaenge($w3, true);
+pruefe('WP: Strom Heizen 1, Warmwasser 1, Stand-by 0,02', [$r($a['wp_heiz']), $r($a['wp_ww']), $r($a['wp_standby'])], [1.0, 1.0, 0.02]);
+pruefe('WP: Wärme Heizen 4, Warmwasser 2,5', [$r($a['waerme_heiz']), $r($a['waerme_ww'])], [4.0, 2.5]);
+pruefe('WP: Teile ergeben die Summe', $r($a['wp_heiz'] + $a['wp_ww'] + $a['wp_standby']), $r($a['wp']));
+pruefe('WP: Arbeitszahl gesamt 6,5 / 2,02', round(BilanzRechner::arbeitszahlen($w3)['gesamt'], 2), 3.22);
+$w4 = BilanzRechner::schritt($w3, $m(['wp' => 102.0]), $t0 + 10810, $opt + ['wpModusWw' => false, 'wpAktiv' => true]);
+pruefe('WP: fallender Zähler wird nicht gebucht', $r(BilanzRechner::ausgaenge($w4, true)['wp_heiz']), 1.0);
 
 printf("\n%d Zusicherungen, %d Abweichung(en).\n", $anzahl, $fehler);
 exit($fehler === 0 ? 0 : 1);

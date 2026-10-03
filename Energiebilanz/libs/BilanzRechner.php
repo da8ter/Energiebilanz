@@ -24,7 +24,10 @@ declare(strict_types=1);
 final class BilanzRechner
 {
     /** Eingangszähler in kWh, in dieser Reihenfolge im Zustand. */
-    public const ZAEHLER = ['pv1', 'pv2', 'bezug', 'einspeisung', 'laden', 'entladen', 'wp', 'wallbox'];
+    public const ZAEHLER = ['pv1', 'pv2', 'bezug', 'einspeisung', 'laden', 'entladen', 'wp', 'wallbox', 'wpwaerme'];
+
+    /** Aufteilung der Wärmepumpe nach Betriebsart (Summen in kWh). */
+    public const WP_TEILE = ['wp_heiz', 'wp_ww', 'wp_standby', 'waerme_heiz', 'waerme_ww'];
 
     /** Ausgangszähler in kWh bzw. € (Geld). */
     public const AUSGAENGE = ['pv', 'haus', 'eigen', 'bezug', 'einspeisung', 'laden', 'entladen', 'wp', 'wallbox', 'rest',
@@ -40,7 +43,7 @@ final class BilanzRechner
     /** Leerer Zustand. */
     public static function neu(): array
     {
-        return ['basis' => [], 'zeit' => [], 'abweichung' => [], 'summe' => array_fill_keys(self::ZAEHLER, 0.0),
+        return ['basis' => [], 'zeit' => [], 'abweichung' => [], 'summe' => array_fill_keys(array_merge(self::ZAEHLER, self::WP_TEILE), 0.0),
                 'geld' => ['kosten' => 0.0, 'erloes' => 0.0, 'ersparnis' => 0.0],
                 'tag' => '', 'tagStart' => [], 'verworfen' => []];
     }
@@ -49,7 +52,9 @@ final class BilanzRechner
      * Ein Schritt.
      *
      * @param array<string, array{wert: ?float, tageszaehler?: bool, maxKw: float}> $messung je Rolle; wert null = Eingang fehlt
-     * @param array{speicherImAc: bool, preisBezug: float, preisEinspeisung: float} $optionen
+     * @param array{speicherImAc: bool, preisBezug: float, preisEinspeisung: float, wpModusWw?: ?bool, wpAktiv?: bool} $optionen
+     *        wpModusWw: true = Warmwasser, false = Heizen, null = unbekannt (dann Heizen);
+     *        wpAktiv: die Wärmepumpe zieht gerade nennenswert Strom.
      */
     public static function schritt(array $stand, array $messung, int $jetzt, array $optionen): array
     {
@@ -95,6 +100,15 @@ final class BilanzRechner
         foreach ($zuwachs as $rolle => $d) {
             $stand['summe'][$rolle] = (float)($stand['summe'][$rolle] ?? 0.0) + $d;
         }
+        // Wärmepumpe nach Betriebsart aufteilen. Der Zuwachs eines Schritts gehört
+        // der Betriebsart, die jetzt gilt: Warmwasser, Heizen — oder Stand-by, wenn
+        // im Heizmodus nichts läuft (das Ventil steht im Ruhezustand auf Heizen).
+        $ww = ($optionen['wpModusWw'] ?? null) === true;
+        $aktiv = ($optionen['wpAktiv'] ?? true) === true;
+        $stromZiel = $ww ? 'wp_ww' : ($aktiv ? 'wp_heiz' : 'wp_standby');
+        $stand['summe'][$stromZiel] = (float)($stand['summe'][$stromZiel] ?? 0.0) + $zuwachs['wp'];
+        $waermeZiel = $ww ? 'waerme_ww' : 'waerme_heiz';
+        $stand['summe'][$waermeZiel] = (float)($stand['summe'][$waermeZiel] ?? 0.0) + $zuwachs['wpwaerme'];
         // Geld aus den Zuwächsen zum JETZT gültigen Preis: eine Preisänderung
         // wirkt ab sofort und schreibt keine Vergangenheit um.
         $b = self::bilanz($zuwachs, $optionen['speicherImAc']);
@@ -145,7 +159,30 @@ final class BilanzRechner
     /** Alle Ausgangszähler aus dem Zustand. */
     public static function ausgaenge(array $stand, bool $speicherImAc): array
     {
-        return self::bilanz($stand['summe'] ?? [], $speicherImAc) + ($stand['geld'] ?? []);
+        $s = $stand['summe'] ?? [];
+        $wp = [];
+        foreach (array_merge(['wpwaerme'], self::WP_TEILE) as $k) {
+            $wp[$k] = (float)($s[$k] ?? 0.0);
+        }
+        return self::bilanz($s, $speicherImAc) + ($stand['geld'] ?? []) + $wp;
+    }
+
+    /**
+     * Arbeitszahlen: heute (Wärme / Strom seit Tagesanfang) und gesamt (Summen).
+     * null, solange zu wenig Strom geflossen ist.
+     *
+     * @return array{heute: ?float, gesamt: ?float}
+     */
+    public static function arbeitszahlen(array $stand): array
+    {
+        $s = $stand['summe'] ?? [];
+        $t = $stand['tagStart'] ?? [];
+        $stromHeute = (float)($s['wp'] ?? 0) - (float)($t['wp'] ?? 0);
+        $waermeHeute = (float)($s['wpwaerme'] ?? 0) - (float)($t['wpwaerme'] ?? 0);
+        return [
+            'heute'  => $stromHeute > 0.2 ? $waermeHeute / $stromHeute : null,
+            'gesamt' => (float)($s['wp'] ?? 0) > 1 ? (float)($s['wpwaerme'] ?? 0) / (float)$s['wp'] : null,
+        ];
     }
 
     /**

@@ -49,7 +49,26 @@
             "Active": "Aktiv",
             "No meters selected": "Keine Zähler gewählt",
             "Feeding in": "Einspeisung",
-            "Threshold for feeding in / import": "Schwelle Einspeisung / Bezug"
+            "Threshold for feeding in / import": "Schwelle Einspeisung / Bezug",
+            "Heat pump heat produced": "Wärmepumpe Wärme erzeugt",
+            "Heat pump heating output": "Wärmepumpe Heizleistung",
+            "Heat pump hot water output": "Wärmepumpe Warmwasserleistung",
+            "Heat pump heat": "Wärmepumpe Wärme",
+            "Heat pump power for heating": "Wärmepumpe Strom Heizen",
+            "Heat pump power for hot water": "Wärmepumpe Strom Warmwasser",
+            "Heat pump standby power": "Wärmepumpe Strom Stand-by",
+            "Heat for heating": "Wärme Heizen",
+            "Heat for hot water": "Wärme Warmwasser",
+            "Heat pump heat output": "Wärmepumpe Wärmeleistung",
+            "Heat pump COP now": "Wärmepumpe COP aktuell",
+            "Heat pump performance factor today": "Wärmepumpe Arbeitszahl heute",
+            "Heat pump performance factor total": "Wärmepumpe Arbeitszahl gesamt",
+            "Electricity and heat are booked to heating or hot water by operating mode. In heating mode below the threshold the electricity counts as standby.": "Strom und Wärme werden nach Betriebsart auf Heizen oder Warmwasser gebucht. Im Heizmodus unterhalb der Schwelle zählt der Strom als Stand-by.",
+            "Operating mode (bool)": "Betriebsart (Bool)",
+            "true means hot water": "true bedeutet Warmwasser",
+            "Running from": "Läuft ab",
+            "Heat pump electricity total": "Wärmepumpe Strom gesamt",
+            "Heat pump heat total": "Wärmepumpe Wärme gesamt"
         }
     }
 }
