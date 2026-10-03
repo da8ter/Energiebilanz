@@ -51,6 +51,12 @@ class Energiebilanz extends IPSModuleStrict
         'AUTARKIE' => ['Self-sufficiency today', 'pct', 50], 'EIGENQUOTE' => ['Self-consumption rate today', 'pct', 51],
     ];
 
+    /** Frühere Namen, die beim Update umbenannt werden — eigene Umbenennungen des Nutzers bleiben stehen. */
+    private const ALTE_NAMEN = [
+        'HAUS_W' => ['Hausleistung', 'House power'],
+        'REST_W' => ['Hausleistung ohne Wärmepumpe und Wallbox', 'House power without heat pump and wallbox'],
+    ];
+
     /** Ausgangszähler-Ident => Schlüssel im Rechenkern. */
     private const ZAEHLER_AUSGANG = [
         'PV_KWH' => 'pv', 'HAUS_KWH' => 'haus', 'EIGEN_KWH' => 'eigen', 'BEZUG_KWH' => 'bezug',
@@ -84,6 +90,18 @@ class Energiebilanz extends IPSModuleStrict
         }
     }
 
+    /** Namen nachziehen, wenn sie sich im Modul geändert haben (RegisterVariable* benennt nicht um). */
+    private function NamenNachziehen(): void
+    {
+        foreach (self::AUSGABE as $ident => [$name]) {
+            $id = @$this->GetIDForIdent($ident);
+            $soll = $this->Translate($name);
+            if ($id !== false && $id > 0 && IPS_GetName($id) !== $soll && in_array(IPS_GetName($id), self::ALTE_NAMEN[$ident] ?? [], true)) {
+                IPS_SetName($id, $soll);
+            }
+        }
+    }
+
     public function ApplyChanges(): void
     {
         parent::ApplyChanges();
@@ -93,6 +111,7 @@ class Energiebilanz extends IPSModuleStrict
             return;
         }
 
+        $this->NamenNachziehen();
         foreach ($this->GetReferenceList() as $ref) {
             $this->UnregisterReference($ref);
         }
