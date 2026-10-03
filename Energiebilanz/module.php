@@ -337,7 +337,7 @@ class Energiebilanz extends IPSModuleStrict
         $ac = (int)$ac[0];
         $geaendert = false;
         $neuAggregieren = [];
-        foreach (self::AUSGABE as $ident => [, $typ]) {
+        foreach (self::AUSGABE + ['EINSPEISUNG' => ['', 'bool']] as $ident => [, $typ]) {
             $id = @$this->GetIDForIdent($ident);
             if ($id === false || $id <= 0) {
                 continue;
