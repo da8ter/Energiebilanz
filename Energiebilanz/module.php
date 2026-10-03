@@ -146,6 +146,15 @@ class Energiebilanz extends IPSModuleStrict
             'preisBezug'       => $this->ReadPropertyFloat('PreisBezug'),
             'preisEinspeisung' => $this->ReadPropertyFloat('PreisEinspeisung'),
         ];
+        // Eingang auf eine andere Variable umgestellt: sofort neu verankern statt
+        // 30 Schritte lang den Sprung zwischen alter und neuer Quelle zu verwerfen.
+        foreach (array_keys(self::ZAEHLER) as $rolle) {
+            $quelle = $this->ReadPropertyInteger('Var_' . $rolle);
+            if (($stand['quelle'][$rolle] ?? $quelle) !== $quelle) {
+                unset($stand['basis'][$rolle], $stand['zeit'][$rolle], $stand['abweichung'][$rolle]);
+            }
+            $stand['quelle'][$rolle] = $quelle;
+        }
         $messung = [];
         foreach (array_keys(self::ZAEHLER) as $rolle) {
             $messung[$rolle] = [
