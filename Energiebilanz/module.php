@@ -99,6 +99,7 @@ class Energiebilanz extends IPSModuleStrict
         $this->RegisterPropertyFloat('PreisEinspeisung', 0.08);
         $this->RegisterPropertyInteger('Intervall', 10);
         $this->RegisterPropertyBoolean('Archivieren', true);
+        $this->RegisterPropertyBoolean('VerdichtungMinute', true);
         $this->RegisterPropertyFloat('SchwelleW', 20.0);
         $this->RegisterPropertyInteger('WpModus', 0);
         $this->RegisterPropertyBoolean('WpModusWwIstTrue', true);
@@ -335,6 +336,7 @@ class Energiebilanz extends IPSModuleStrict
         }
         $ac = (int)$ac[0];
         $geaendert = false;
+        $neuAggregieren = [];
         foreach (self::AUSGABE as $ident => [, $typ]) {
             $id = @$this->GetIDForIdent($ident);
             if ($id === false || $id <= 0) {
@@ -349,9 +351,26 @@ class Energiebilanz extends IPSModuleStrict
                 AC_SetAggregationType($ac, $id, $agg);
                 $geaendert = true;
             }
+            // Verdichtung: sofort ein Wert pro Minute (MonthOffset −1, Typ 0).
+            if ($this->ReadPropertyBoolean('VerdichtungMinute')) {
+                $hat = false;
+                foreach ((array)@AC_GetCompaction($ac, $id) as $e) {
+                    if ((int)($e['MonthOffset'] ?? 99) === -1 && (int)($e['CompactionType'] ?? 99) === 0) {
+                        $hat = true;
+                    }
+                }
+                if (!$hat) {
+                    AC_SetCompaction($ac, $id, -1, 0);
+                    $neuAggregieren[] = $id;
+                    $geaendert = true;
+                }
+            }
         }
         if ($geaendert) {
             IPS_ApplyChanges($ac);
+        }
+        foreach ($neuAggregieren as $id) {
+            @AC_ReAggregateVariable($ac, $id);
         }
     }
 
@@ -410,6 +429,7 @@ class Energiebilanz extends IPSModuleStrict
                     ['type' => 'NumberSpinner', 'name' => 'SchwelleW', 'caption' => $this->Translate('Threshold for feeding in / import'), 'suffix' => ' W', 'digits' => 0],
                     ['type' => 'NumberSpinner', 'name' => 'Intervall', 'caption' => $this->Translate('Interval'), 'suffix' => ' s', 'minimum' => 5],
                     ['type' => 'CheckBox', 'name' => 'Archivieren', 'caption' => $this->Translate('Set up archive logging for the outputs')],
+                    ['type' => 'CheckBox', 'name' => 'VerdichtungMinute', 'caption' => $this->Translate('Compact the archive to one value per minute')],
                 ]],
             ],
             'actions' => [

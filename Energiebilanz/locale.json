@@ -81,7 +81,8 @@
             "Performance factor heating today": "Arbeitszahl Heizen heute",
             "Performance factor heating total": "Arbeitszahl Heizen gesamt",
             "Performance factor hot water today": "Arbeitszahl Warmwasser heute",
-            "Performance factor hot water total": "Arbeitszahl Warmwasser gesamt"
+            "Performance factor hot water total": "Arbeitszahl Warmwasser gesamt",
+            "Compact the archive to one value per minute": "Archiv auf einen Wert pro Minute verdichten"
         }
     }
 }
