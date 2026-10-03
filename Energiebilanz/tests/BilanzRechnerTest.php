@@ -121,5 +121,14 @@ $az = BilanzRechner::arbeitszahlen($h2);
 pruefe('Arbeitszahl Heizen gesamt 6/4 = 1,5; Warmwasser unter 1 kWh Strom noch leer', [round($az['heiz_gesamt'], 2), $az['ww_gesamt']], [1.5, null]);
 pruefe('Arbeitszahl Warmwasser heute 1,5/0,5 = 3', round($az['ww_heute'], 2), 3.0);
 
+// ── Nacht: Speicher entlädt, Wandlungsverluste ─────────────────────────────
+$n0 = BilanzRechner::schritt(BilanzRechner::neu(), $m(['pv1' => 1000, 'pv2' => 0, 'bezug' => 100, 'einspeisung' => 50, 'laden' => 0, 'entladen' => 0], ['laden', 'entladen']), $t0, $opt);
+$n1 = BilanzRechner::schritt($n0, $m(['pv1' => 1003.66, 'pv2' => 0, 'bezug' => 100.16, 'einspeisung' => 50, 'laden' => 0, 'entladen' => 3.705], ['laden', 'entladen']), $t0 + 3600, $opt);
+$a0 = BilanzRechner::ausgaenge($n0, true); $a1 = BilanzRechner::ausgaenge($n1, true);
+pruefe('Nacht: PV-Zähler fällt nicht (Verlust 0,045 kWh)', $r($a1['pv'] - $a0['pv']), 0.0);
+pruefe('Nacht: Hausverbrauch = AC + Bezug = 3,82 kWh', $r($a1['haus'] - $a0['haus']), 3.82);
+$l = BilanzRechner::leistung(['pv1' => 3663, 'pv2' => 0, 'netz' => 165, 'speicher' => -3705], true);
+pruefe('Nacht-Leistung: PV 0 statt −42, Haus = AC + Netz', [$l['pv'], $l['haus']], [0.0, 3828.0]);
+
 printf("\n%d Zusicherungen, %d Abweichung(en).\n", $anzahl, $fehler);
 exit($fehler === 0 ? 0 : 1);

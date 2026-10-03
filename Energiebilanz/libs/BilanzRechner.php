@@ -36,6 +36,9 @@ final class BilanzRechner
     public const AUSGAENGE = ['pv', 'haus', 'eigen', 'bezug', 'einspeisung', 'laden', 'entladen', 'wp', 'wallbox', 'rest',
                               'kosten', 'erloes', 'ersparnis'];
 
+    /** Abgeleitete Zähler, die als eigene, nur steigende Summen geführt werden. */
+    public const ABGELEITET = ['pv', 'haus', 'eigen', 'rest'];
+
     public const NEU_VERANKERN = 30;
     /** Reserve auf die Höchstleistung, und ein fester Sockel gegen Rundung der Zähler. */
     private const RESERVE = 1.5;
@@ -124,6 +127,21 @@ final class BilanzRechner
             $waermeZiel = $ww ? 'waerme_ww' : 'waerme_heiz';
             $stand['summe'][$waermeZiel] = (float)($stand['summe'][$waermeZiel] ?? 0.0) + $zuwachs['wpwaerme'];
         }
+        // Abgeleitete Zähler nur mit positiven Zuwächsen fortschreiben. Sonst fiele
+        // etwa die PV nachts um die Wandlungsverluste (Speicher entlädt mehr DC, als
+        // der Wechselrichter als AC abgibt) — und ein Zähler darf nie fallen.
+        if (!isset($stand['aus']) || !is_array($stand['aus'])) {
+            $start = self::bilanz($stand['summe'], $optionen['speicherImAc']);
+            $stand['aus'] = [];
+            foreach (self::ABGELEITET as $k) {
+                $stand['aus'][$k] = (float)$start[$k] - (float)(self::bilanz($zuwachs, $optionen['speicherImAc'])[$k] ?? 0.0);
+            }
+        }
+        $bz = self::bilanz($zuwachs, $optionen['speicherImAc']);
+        foreach (self::ABGELEITET as $k) {
+            $stand['aus'][$k] = (float)($stand['aus'][$k] ?? 0.0) + max(0.0, (float)$bz[$k]);
+        }
+
         // Geld aus den Zuwächsen zum JETZT gültigen Preis: eine Preisänderung
         // wirkt ab sofort und schreibt keine Vergangenheit um.
         $b = self::bilanz($zuwachs, $optionen['speicherImAc']);
@@ -181,7 +199,13 @@ final class BilanzRechner
         foreach (array_merge(['wpwaerme'], self::WP_TEILE) as $k) {
             $wp[$k] = (float)($s[$k] ?? 0.0);
         }
-        return self::bilanz($s, $speicherImAc) + ($stand['geld'] ?? []) + $wp;
+        $b = self::bilanz($s, $speicherImAc);
+        foreach (self::ABGELEITET as $k) {
+            if (isset($stand['aus'][$k])) {
+                $b[$k] = (float)$stand['aus'][$k];
+            }
+        }
+        return $b + ($stand['geld'] ?? []) + $wp;
     }
 
     /**
@@ -241,7 +265,10 @@ final class BilanzRechner
         $pvRoh = $g('pv1') + $g('pv2');
         $pv = $speicherImAc ? $pvRoh + $g('speicher') : $pvRoh;
         $haus = $pv + $g('netz') - $g('speicher');
-        return ['pv' => $pv, 'netz' => $g('netz'), 'speicher' => $g('speicher'), 'haus' => $haus,
+        // Angezeigt wird die PV nie negativ: ein Minus ist der Wandlungsverlust des
+        // Wechselrichters beim Entladen. Der Hausverbrauch oben rechnet mit dem
+        // ungekappten Wert und bleibt damit AC-Ausgang + Netz.
+        return ['pv' => max(0.0, $pv), 'netz' => $g('netz'), 'speicher' => $g('speicher'), 'haus' => $haus,
                 'wp' => $g('wp'), 'heizstab' => $g('heizstab'), 'wallbox' => $g('wallbox'),
                 'rest' => $haus - $g('wp') - $g('heizstab') - $g('wallbox')];
     }

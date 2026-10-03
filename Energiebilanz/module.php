@@ -223,7 +223,7 @@ class Energiebilanz extends IPSModuleStrict
         }
         // Die beiden Anlagen einzeln (z. B. für eine Energieverteilung): die
         // Hauptanlage als reine Erzeugung, beim Hybrid also AC + Laden.
-        $pv1 = (float)($w['pv1'] ?? 0.0) + ($opt['speicherImAc'] ? (float)($w['speicher'] ?? 0.0) : 0.0);
+        $pv1 = max(0.0, (float)($w['pv1'] ?? 0.0) + ($opt['speicherImAc'] ? (float)($w['speicher'] ?? 0.0) : 0.0));
         $this->Setzen('PV1_W', round($pv1, 1));
         $this->Setzen('PV2_W', round((float)($w['pv2'] ?? 0.0), 1));
         // Einspeisung ja/nein mit Schwelle: zwischen −Schwelle und +Schwelle bleibt
@@ -289,6 +289,7 @@ class Energiebilanz extends IPSModuleStrict
             }
         }
         $stand['tag'] = '';     // Tagesanfang neu setzen, sonst springen die Quoten
+        unset($stand['aus']);   // abgeleitete Zähler aus den neuen Summen neu aufsetzen
         $this->WriteAttributeString('Zustand', (string)json_encode($stand));
         $this->Rechnen();
         return true;
