@@ -2,7 +2,7 @@
 
 Eine Stelle für Erzeugung, Verbrauch, Netz, Speicher, Wärmepumpe und Wallbox in Symcon.
 
-Die Instanz liest Zählerstände (kWh) und Leistungen (W) der Geräte und führt daraus eigene Zähler, die **nur steigen**: PV-Erzeugung, Hausverbrauch, Eigenverbrauch, Netzbezug, Einspeisung, Speicher, Wärmepumpe, Wallbox, der Hausverbrauch ohne Wärmepumpe und Wallbox sowie Netzkosten, Einspeiseerlös und Ersparnis in Euro. Dazu kommen die Momentanleistungen und Autarkie und Eigenverbrauchsquote des laufenden Tages.
+Die Instanz liest Zählerstände (kWh) und Leistungen (W) der Geräte und führt daraus eigene Zähler, die **nur steigen**: PV-Erzeugung, Hausverbrauch, Eigenverbrauch, Netzbezug, Einspeisung, Speicher, Wärmepumpe, Wallbox, der Hausverbrauch ohne Wärmepumpe und Wallbox sowie Netzkosten, Einspeiseerlös und Ersparnis in Euro. Dazu kommen die Momentanleistungen – darunter der aktuelle Hausverbrauch in Watt –, Autarkie und Eigenverbrauchsquote des laufenden Tages und die Anzeige **Einspeisung** (ja/nein), die erst ab einer einstellbaren Schwelle (Vorgabe 20 W) umschaltet.
 
 Tag, Woche, Monat und Jahr liefert das Symcon-Archiv – die Zähler werden als Zähler archiviert. Heute-, Monats- oder Jahresvariablen gibt es bewusst nicht.
 
