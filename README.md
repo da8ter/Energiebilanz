@@ -12,6 +12,17 @@ Gerechnet wird mit Zuwächsen. Ein Zuwachs zählt nur, wenn er nicht negativ ist
 
 Tageszähler, die um Mitternacht auf 0 fallen (z. B. Speicher geladen/entladen), werden als solche markiert; ihr Rücksetzen gilt nicht als Absturz.
 
+## Wärmepumpe
+
+Aus Strom gesamt, Wärme gesamt und der Betriebsart (Bool: Warmwasser/Heizen) führt die Instanz:
+
+- Strom und Wärme gesamt sowie getrennt nach **Heizen** und **Warmwasser**
+- **Stand-by-Strom**: im Heizmodus unterhalb der Schwelle *Läuft ab* (Vorgabe 200 W) – das Umschaltventil steht in Ruhe auf Heizen, ohne diese Trennung landete der Ruheverbrauch beim Heizen
+- **COP aktuell** aus Wärmeleistung der laufenden Betriebsart und elektrischer Leistung
+- **Arbeitszahl heute** und **Arbeitszahl gesamt**; Monat und Jahr ergeben sich aus dem Archiv
+
+Gebucht wird jeder Zuwachs nach der Betriebsart, die in dem Moment gilt. Damit gibt es keine Rücksprünge wie bei „gesamt − Warmwasser“.
+
 ## Hybrid-Wechselrichter
 
 Misst der PV-Zähler den AC-Ausgang eines Hybrid-Wechselrichters (z. B. SolarEdge StorEdge), sind Laden und Entladen des Speichers dort schon verrechnet. Mit dem Schalter *Speicher ist im AC-Zähler enthalten* rechnet die Instanz:
