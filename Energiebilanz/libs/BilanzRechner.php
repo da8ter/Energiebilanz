@@ -185,21 +185,29 @@ final class BilanzRechner
     }
 
     /**
-     * Arbeitszahlen: heute (Wärme / Strom seit Tagesanfang) und gesamt (Summen).
-     * null, solange zu wenig Strom geflossen ist.
+     * Arbeitszahlen (Wärme / Strom): gesamt, nur Heizen, nur Warmwasser — je für
+     * den laufenden Tag und über die ganze Summe. Heizen und Warmwasser rechnen mit
+     * dem Strom ihrer Betriebsart (Verdichter + Heizstab, ohne Stand-by); gesamt
+     * mit allem Strom. null, solange zu wenig Strom geflossen ist.
      *
-     * @return array{heute: ?float, gesamt: ?float}
+     * @return array{heute: ?float, gesamt: ?float, heiz_heute: ?float, heiz_gesamt: ?float, ww_heute: ?float, ww_gesamt: ?float}
      */
     public static function arbeitszahlen(array $stand): array
     {
         $s = $stand['summe'] ?? [];
         $t = $stand['tagStart'] ?? [];
-        $strom = static fn(array $x): float => (float)($x['wp'] ?? 0) + (float)($x['heizstab'] ?? 0);
-        $stromHeute = $strom($s) - $strom($t);
-        $waermeHeute = (float)($s['wpwaerme'] ?? 0) - (float)($t['wpwaerme'] ?? 0);
+        $v = static fn(array $x, string $k): float => (float)($x[$k] ?? 0.0);
+        $quote = static function (float $waerme, float $strom, float $min): ?float {
+            return $strom > $min ? $waerme / $strom : null;
+        };
+        $stromGes = static fn(array $x): float => (float)($x['wp'] ?? 0) + (float)($x['heizstab'] ?? 0);
         return [
-            'heute'  => $stromHeute > 0.2 ? $waermeHeute / $stromHeute : null,
-            'gesamt' => $strom($s) > 1 ? (float)($s['wpwaerme'] ?? 0) / $strom($s) : null,
+            'heute'       => $quote($v($s, 'wpwaerme') - $v($t, 'wpwaerme'), $stromGes($s) - $stromGes($t), 0.2),
+            'gesamt'      => $quote($v($s, 'wpwaerme'), $stromGes($s), 1.0),
+            'heiz_heute'  => $quote($v($s, 'waerme_heiz') - $v($t, 'waerme_heiz'), $v($s, 'wp_heiz') - $v($t, 'wp_heiz'), 0.2),
+            'heiz_gesamt' => $quote($v($s, 'waerme_heiz'), $v($s, 'wp_heiz'), 1.0),
+            'ww_heute'    => $quote($v($s, 'waerme_ww') - $v($t, 'waerme_ww'), $v($s, 'wp_ww') - $v($t, 'wp_ww'), 0.2),
+            'ww_gesamt'   => $quote($v($s, 'waerme_ww'), $v($s, 'wp_ww'), 1.0),
         ];
     }
 

@@ -60,6 +60,8 @@ class Energiebilanz extends IPSModuleStrict
         'WP_WAERME_HEIZ_KWH' => ['Heat for heating', 'kwh', 64], 'WP_WAERME_WW_KWH' => ['Heat for hot water', 'kwh', 65],
         'WP_WAERME_W' => ['Heat pump heat output', 'w', 66], 'WP_COP' => ['Heat pump COP now', 'zahl', 67],
         'WP_AZ_HEUTE' => ['Heat pump performance factor today', 'zahl', 68], 'WP_AZ_GESAMT' => ['Heat pump performance factor total', 'zahl', 69],
+        'WP_AZ_HEIZ_HEUTE' => ['Performance factor heating today', 'zahl', 70], 'WP_AZ_HEIZ_GESAMT' => ['Performance factor heating total', 'zahl', 71],
+        'WP_AZ_WW_HEUTE' => ['Performance factor hot water today', 'zahl', 72], 'WP_AZ_WW_GESAMT' => ['Performance factor hot water total', 'zahl', 73],
     ];
 
     /** Frühere Namen, die beim Update umbenannt werden — eigene Umbenennungen des Nutzers bleiben stehen. */
@@ -245,6 +247,10 @@ class Energiebilanz extends IPSModuleStrict
         $az = BilanzRechner::arbeitszahlen($stand);
         $this->Setzen('WP_AZ_HEUTE', round((float)($az['heute'] ?? 0.0), 2));
         $this->Setzen('WP_AZ_GESAMT', round((float)($az['gesamt'] ?? 0.0), 2));
+        $this->Setzen('WP_AZ_HEIZ_HEUTE', round((float)($az['heiz_heute'] ?? 0.0), 2));
+        $this->Setzen('WP_AZ_HEIZ_GESAMT', round((float)($az['heiz_gesamt'] ?? 0.0), 2));
+        $this->Setzen('WP_AZ_WW_HEUTE', round((float)($az['ww_heute'] ?? 0.0), 2));
+        $this->Setzen('WP_AZ_WW_GESAMT', round((float)($az['ww_gesamt'] ?? 0.0), 2));
 
         $q = BilanzRechner::tagesquoten($stand, $opt['speicherImAc']);
         $this->Setzen('AUTARKIE', round((float)($q['autarkie'] ?? 0.0), 1));

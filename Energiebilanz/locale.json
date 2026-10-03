@@ -77,7 +77,11 @@
             "Heating rod power": "Heizstab Leistung",
             "Heat pump heat produced (without separate heat meters)": "Wärmepumpe Wärme gesamt (ohne getrennte Wärmezähler)",
             "Heat meter heating": "Wärmemengenzähler Heizung",
-            "Heat meter hot water": "Wärmemengenzähler Warmwasser"
+            "Heat meter hot water": "Wärmemengenzähler Warmwasser",
+            "Performance factor heating today": "Arbeitszahl Heizen heute",
+            "Performance factor heating total": "Arbeitszahl Heizen gesamt",
+            "Performance factor hot water today": "Arbeitszahl Warmwasser heute",
+            "Performance factor hot water total": "Arbeitszahl Warmwasser gesamt"
         }
     }
 }

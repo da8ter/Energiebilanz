@@ -117,5 +117,8 @@ pruefe('Rest zieht Verdichter und Heizstab ab: Haus 4,5 − 4,5 = 0', $r($a['res
 $l = BilanzRechner::leistung(['pv1' => 0, 'netz' => 4000, 'wp' => 1000, 'heizstab' => 3000], false);
 pruefe('Leistung: Rest ohne WP und Heizstab', [$l['heizstab'], $l['rest']], [3000.0, 0.0]);
 
+$az = BilanzRechner::arbeitszahlen($h2);
+pruefe('Arbeitszahl Heizen 6/4, Warmwasser 1,5/0,5', [round($az['heiz_gesamt'], 2), round($az['ww_gesamt'], 2)], [1.5, 3.0]);
+
 printf("\n%d Zusicherungen, %d Abweichung(en).\n", $anzahl, $fehler);
 exit($fehler === 0 ? 0 : 1);
