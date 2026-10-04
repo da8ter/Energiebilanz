@@ -50,7 +50,7 @@ pruefe('Geld: Kosten, Erlös, Ersparnis', [$r($a['kosten']), $r($a['erloes']), $
 $vor = $a['pv'];
 $s = BilanzRechner::schritt($s, $m(['pv1' => 3970, 'pv2' => 1130.1, 'bezug' => 33000.2, 'einspeisung' => 14600.3, 'laden' => 0.4, 'entladen' => 0.1, 'wp' => 14000.1, 'wallbox' => 2440], ['laden', 'entladen']), $t0 + 3610, $opt);
 pruefe('Absturz wird verworfen und gemeldet', isset($s['verworfen']['pv1']), true);
-$s = BilanzRechner::schritt($s, $m(['pv1' => 43001.01, 'pv2' => 1130.1, 'bezug' => 33000.2, 'einspeisung' => 14600.3, 'laden' => 0.4, 'entladen' => 0.1, 'wp' => 14000.1, 'wallbox' => 2440], ['laden', 'entladen']), $t0 + 3620, $opt);
+$s = BilanzRechner::schritt($s, $m(['pv1' => 43001.01, 'pv2' => 1130.1, 'bezug' => 33000.2, 'einspeisung' => 14600.3, 'laden' => 0.4, 'entladen' => 0.1, 'wp' => 14000.1, 'wallbox' => 2440], ['laden', 'entladen']), $t0 + 3600 + 100, $opt);
 pruefe('Rückkehr zählt nur den echten Zuwachs (0,01 kWh)', $r(BilanzRechner::ausgaenge($s, true)['pv'] - $vor), 0.01);
 
 // ── Sprung nach oben ───────────────────────────────────────────────────────
@@ -62,7 +62,15 @@ $mitternacht = mktime(0, 0, 30, 10, 4, 2026);
 $s3 = BilanzRechner::schritt($s, $m(['laden' => 5.2], ['laden', 'entladen']), $mitternacht - 120, $opt);   // 23:58: +4,8 kWh … zu viel?
 pruefe('Tageszähler: 4,8 kWh in 16,5 h sind plausibel', $r($s3['summe']['laden']), 5.2);
 $s3 = BilanzRechner::schritt($s3, $m(['laden' => 0.02], ['laden', 'entladen']), $mitternacht, $opt);
-pruefe('Tageszähler fällt auf 0,02: Rücksetzung, Zuwachs 0,02', $r($s3['summe']['laden']), 5.22);
+pruefe('Tageszähler fällt auf 0,02: Rücksetzung, nichts gebucht, neu verankert', [$r($s3['summe']['laden']), $s3['basis']['laden'], $s3['verworfen']['laden'] ?? null], [5.2, 0.02, 'reset']);
+$s3 = BilanzRechner::schritt($s3, $m(['laden' => 0.05], ['laden', 'entladen']), $mitternacht + 60, $opt);
+pruefe('Nach dem Reset zählt der Zähler ab dem neuen Stand weiter (+0,03)', $r($s3['summe']['laden']), 5.23);
+// SolarEdge-Art: Reset mitten im Entladen auf 2,3 statt 0 — nichts buchen, nicht 30 Schritte verwerfen
+$sr = BilanzRechner::schritt(BilanzRechner::neu(), $m(['entladen' => 5.1], ['laden', 'entladen']), $t0, $opt);
+$sr = BilanzRechner::schritt($sr, $m(['entladen' => 5.154], ['laden', 'entladen']), $t0 + 60, $opt);
+$sr = BilanzRechner::schritt($sr, $m(['entladen' => 2.308], ['laden', 'entladen']), $t0 + 120, $opt);
+$sr = BilanzRechner::schritt($sr, $m(['entladen' => 2.353], ['laden', 'entladen']), $t0 + 180, $opt);
+pruefe('Reset auf 2,308: nichts gebucht, nächster Schritt zählt +0,045', $r($sr['summe']['entladen']), 0.099);
 pruefe('Neuer Tag: Tagesanfang neu gesetzt', $s3['tag'], '2026-10-04');
 
 // ── Neu verankern nach Zählertausch ────────────────────────────────────────
@@ -125,7 +133,7 @@ pruefe('Arbeitszahl Warmwasser heute 1,5/0,5 = 3', round($az['ww_heute'], 2), 3.
 $n0 = BilanzRechner::schritt(BilanzRechner::neu(), $m(['pv1' => 1000, 'pv2' => 0, 'bezug' => 100, 'einspeisung' => 50, 'laden' => 0, 'entladen' => 0], ['laden', 'entladen']), $t0, $opt);
 $n1 = BilanzRechner::schritt($n0, $m(['pv1' => 1003.66, 'pv2' => 0, 'bezug' => 100.16, 'einspeisung' => 50, 'laden' => 0, 'entladen' => 3.705], ['laden', 'entladen']), $t0 + 3600, $opt);
 $a0 = BilanzRechner::ausgaenge($n0, true); $a1 = BilanzRechner::ausgaenge($n1, true);
-pruefe('Nacht: PV-Zähler fällt nicht (Verlust 0,045 kWh)', $r($a1['pv'] - $a0['pv']), 0.0);
+pruefe('Nacht: PV-Zähler fällt nicht, Verlust 0,045 kWh wird eigener Zähler', [$r($a1['pv'] - $a0['pv']), $r($a1['verluste'] - $a0['verluste'])], [0.0, 0.045]);
 pruefe('Nacht: Hausverbrauch = AC + Bezug = 3,82 kWh', $r($a1['haus'] - $a0['haus']), 3.82);
 $l = BilanzRechner::leistung(['pv1' => 3663, 'pv2' => 0, 'netz' => 165, 'speicher' => -3705], true);
 pruefe('Nacht-Leistung: PV 0 statt −42, Haus = AC + Netz', [$l['pv'], $l['haus']], [0.0, 3828.0]);

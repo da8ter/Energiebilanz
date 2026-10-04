@@ -37,7 +37,9 @@ final class BilanzRechner
                               'kosten', 'erloes', 'ersparnis'];
 
     /** Abgeleitete Zähler, die als eigene, nur steigende Summen geführt werden. */
-    public const ABGELEITET = ['pv', 'haus', 'eigen', 'rest'];
+    public const ABGELEITET = ['pv', 'haus', 'eigen', 'rest', 'verluste'];
+    /** Nach so vielen Sekunden ohne neuen Speicherwert gilt der Speicher als still, und der Korb wird gebucht. */
+    public const KORB_STILL_S = 90;
 
     public const NEU_VERANKERN = 30;
     /** Reserve auf die Höchstleistung, und ein fester Sockel gegen Rundung der Zähler. */
@@ -82,7 +84,16 @@ final class BilanzRechner
             }
             $d = $wert - (float)$stand['basis'][$rolle];
             if ($d < 0 && ($m['tageszaehler'] ?? false)) {
-                $d = $wert;     // Rücksetzung: der neue Stand ist der Zuwachs seit 0
+                /* Rücksetzung eines Tageszählers. SolarEdge setzt die Speicherzähler
+                   zweimal täglich zurück (abends und beim Aufwachen), und zwar NICHT
+                   auf 0, sondern auf einen beliebigen kleinen Stand. Was seit dem
+                   Reset floss, ist deshalb nicht ablesbar: nichts buchen, sofort neu
+                   verankern. Verloren geht höchstens ein Abfrageintervall. */
+                $stand['basis'][$rolle] = $wert;
+                $stand['zeit'][$rolle] = $jetzt;
+                $stand['abweichung'][$rolle] = 0;
+                $stand['verworfen'][$rolle] = 'reset';
+                continue;
             }
             $stunden = max(($jetzt - (int)$stand['zeit'][$rolle]) / 3600, self::MIN_STUNDEN);
             $grenze = max(0.0, (float)$m['maxKw']) * $stunden * self::RESERVE + self::SOCKEL_KWH;
@@ -127,27 +138,43 @@ final class BilanzRechner
             $waermeZiel = $ww ? 'waerme_ww' : 'waerme_heiz';
             $stand['summe'][$waermeZiel] = (float)($stand['summe'][$waermeZiel] ?? 0.0) + $zuwachs['wpwaerme'];
         }
-        // Abgeleitete Zähler: ein Rohwert, der fallen darf, und ein Ausgang, der nur
-        // dessen Höchststand übernimmt. So fällt kein Zähler (die PV nachts um die
-        // Wandlungsverluste des Wechselrichters), und kleine Rücksprünge, weil die
-        // Eingangszähler zeitversetzt aktualisieren, werden erst zurückgezahlt,
-        // statt sich als Rauschen nach oben aufzusummieren.
-        $bz = self::bilanz($zuwachs, $optionen['speicherImAc']);
+        /* Abgeleitete Zähler (PV, Haus, Eigenverbrauch, Rest) kommen aus einem
+           SAMMELKORB. Grund: Wechselrichter- und Speicherzähler werden zu
+           verschiedenen Zeiten gelesen (10 s gegen 60 s). Schrittweise gerechnet
+           flackerte PV = AC + Laden − Entladen deshalb um die Wahrheit herum, und
+           jede Vorzeichenregel summierte das Flackern auf. Gebucht wird erst, wenn
+           die Speicherzähler nachgezogen haben — oder der Speicher länger still ist.
+           Ein negativer PV-Zuwachs ist dann kein Rauschen mehr, sondern der
+           Wandlungsverlust beim Entladen, und bekommt seinen eigenen Zähler. */
         if (!isset($stand['aus']) || !is_array($stand['aus'])) {
             $start = self::bilanz($stand['summe'], $optionen['speicherImAc']);
             $stand['aus'] = [];
-            $stand['roh'] = [];
             foreach (self::ABGELEITET as $k) {
-                $stand['aus'][$k] = (float)$start[$k];
-                $stand['roh'][$k] = (float)$start[$k];
+                $stand['aus'][$k] = (float)($start[$k] ?? 0.0);
             }
-        } else {
-            foreach (self::ABGELEITET as $k) {
-                $stand['roh'][$k] = (float)($stand['roh'][$k] ?? $stand['aus'][$k]) + (float)$bz[$k];
-                if ($stand['roh'][$k] > (float)$stand['aus'][$k]) {
-                    $stand['aus'][$k] = $stand['roh'][$k];
-                }
+            $stand['korb'] = array_fill_keys(self::ZAEHLER, 0.0);
+            $stand['korbSeit'] = $jetzt;
+        }
+        unset($stand['roh']);
+        foreach (self::ZAEHLER as $k) {
+            $stand['korb'][$k] = (float)($stand['korb'][$k] ?? 0.0) + $zuwachs[$k];
+        }
+        $speicherNeu = $zuwachs['laden'] > 0 || $zuwachs['entladen'] > 0
+            || isset($stand['verworfen']['laden']) || isset($stand['verworfen']['entladen']);
+        $speicherStill = ($jetzt - (int)($stand['korbSeit'] ?? $jetzt)) >= self::KORB_STILL_S;
+        if ($speicherNeu || $speicherStill) {
+            $bk = self::bilanz($stand['korb'], $optionen['speicherImAc']);
+            $dPv = (float)$bk['pv'];
+            if ($dPv < 0) {
+                $stand['aus']['verluste'] += -$dPv;
+                $dPv = 0.0;
             }
+            $stand['aus']['pv'] += $dPv;
+            $stand['aus']['haus'] += max(0.0, (float)$bk['haus']);
+            $stand['aus']['eigen'] += max(0.0, $dPv - (float)$stand['korb']['einspeisung']);
+            $stand['aus']['rest'] += max(0.0, (float)$bk['rest']);
+            $stand['korb'] = array_fill_keys(self::ZAEHLER, 0.0);
+            $stand['korbSeit'] = $jetzt;
         }
 
         // Geld aus den Zuwächsen zum JETZT gültigen Preis: eine Preisänderung
@@ -162,11 +189,7 @@ final class BilanzRechner
         if ($stand['tag'] !== $heute) {
             $stand['tag'] = $heute;
             $stand['tagStart'] = $stand['summe'];
-            // Mitternacht: offene Rücksprünge verfallen, damit Verluste der Nacht
-            // nicht die PV des nächsten Vormittags aufzehren.
-            if (isset($stand['aus'])) {
-                $stand['roh'] = $stand['aus'];
-            }
+            $stand['tagStartAus'] = $stand['aus'] ?? [];
         }
         return $stand;
     }
@@ -255,14 +278,24 @@ final class BilanzRechner
      */
     public static function tagesquoten(array $stand, bool $speicherImAc): array
     {
-        $tag = [];
-        foreach (self::ZAEHLER as $k) {
-            $tag[$k] = (float)($stand['summe'][$k] ?? 0.0) - (float)($stand['tagStart'][$k] ?? 0.0);
+        $aus = $stand['aus'] ?? null;
+        if (is_array($aus)) {
+            $t = $stand['tagStartAus'] ?? [];
+            $pv = (float)($aus['pv'] ?? 0) - (float)($t['pv'] ?? 0);
+            $haus = (float)($aus['haus'] ?? 0) - (float)($t['haus'] ?? 0);
+            $eigen = (float)($aus['eigen'] ?? 0) - (float)($t['eigen'] ?? 0);
+            $bezug = (float)($stand['summe']['bezug'] ?? 0) - (float)($stand['tagStart']['bezug'] ?? 0);
+        } else {
+            $tag = [];
+            foreach (self::ZAEHLER as $k) {
+                $tag[$k] = (float)($stand['summe'][$k] ?? 0.0) - (float)($stand['tagStart'][$k] ?? 0.0);
+            }
+            $b = self::bilanz($tag, $speicherImAc);
+            [$pv, $haus, $eigen, $bezug] = [$b['pv'], $b['haus'], $b['eigen'], $b['bezug']];
         }
-        $b = self::bilanz($tag, $speicherImAc);
         return [
-            'autarkie'   => $b['haus'] > 0.01 ? max(0.0, min(100.0, (1 - $b['bezug'] / $b['haus']) * 100)) : null,
-            'eigenquote' => $b['pv'] > 0.01 ? max(0.0, min(100.0, $b['eigen'] / $b['pv'] * 100)) : null,
+            'autarkie'   => $haus > 0.01 ? max(0.0, min(100.0, (1 - $bezug / $haus) * 100)) : null,
+            'eigenquote' => $pv > 0.01 ? max(0.0, min(100.0, $eigen / $pv * 100)) : null,
         ];
     }
 

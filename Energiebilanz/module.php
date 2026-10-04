@@ -46,7 +46,7 @@ class Energiebilanz extends IPSModuleStrict
         'PV_KWH' => ['PV generation', 'kwh', 10], 'HAUS_KWH' => ['House consumption', 'kwh', 11],
         'EIGEN_KWH' => ['Self-consumption', 'kwh', 12], 'BEZUG_KWH' => ['Grid import', 'kwh', 13],
         'EINSPEISUNG_KWH' => ['Grid export', 'kwh', 14], 'LADEN_KWH' => ['Battery charged', 'kwh', 15],
-        'ENTLADEN_KWH' => ['Battery discharged', 'kwh', 16], 'WP_KWH' => ['Heat pump electricity total', 'kwh', 17], 'WP_VERDICHTER_KWH' => ['Heat pump compressor', 'kwh', 20],
+        'ENTLADEN_KWH' => ['Battery discharged', 'kwh', 16], 'VERLUSTE_KWH' => ['Battery conversion losses', 'kwh', 22], 'WP_KWH' => ['Heat pump electricity total', 'kwh', 17], 'WP_VERDICHTER_KWH' => ['Heat pump compressor', 'kwh', 20],
         'HEIZSTAB_KWH' => ['Heating rod', 'kwh', 21],
         'WALLBOX_KWH' => ['Wallbox', 'kwh', 18], 'REST_KWH' => ['House without heat pump and wallbox', 'kwh', 19],
         'KOSTEN_EUR' => ['Grid costs', 'eur', 30], 'ERLOES_EUR' => ['Feed-in revenue', 'eur', 31],
@@ -76,7 +76,7 @@ class Energiebilanz extends IPSModuleStrict
     private const ZAEHLER_AUSGANG = [
         'PV_KWH' => 'pv', 'HAUS_KWH' => 'haus', 'EIGEN_KWH' => 'eigen', 'BEZUG_KWH' => 'bezug',
         'EINSPEISUNG_KWH' => 'einspeisung', 'LADEN_KWH' => 'laden', 'ENTLADEN_KWH' => 'entladen', 'WP_KWH' => 'wpgesamt',
-        'WALLBOX_KWH' => 'wallbox', 'WP_VERDICHTER_KWH' => 'wp', 'HEIZSTAB_KWH' => 'heizstab', 'REST_KWH' => 'rest', 'KOSTEN_EUR' => 'kosten', 'ERLOES_EUR' => 'erloes',
+        'WALLBOX_KWH' => 'wallbox', 'WP_VERDICHTER_KWH' => 'wp', 'HEIZSTAB_KWH' => 'heizstab', 'VERLUSTE_KWH' => 'verluste', 'REST_KWH' => 'rest', 'KOSTEN_EUR' => 'kosten', 'ERLOES_EUR' => 'erloes',
         'ERSPARNIS_EUR' => 'ersparnis',
         'WP_WAERME_KWH' => 'wpwaerme', 'WP_STROM_HEIZ_KWH' => 'wp_heiz', 'WP_STROM_WW_KWH' => 'wp_ww',
         'WP_STROM_STANDBY_KWH' => 'wp_standby', 'WP_WAERME_HEIZ_KWH' => 'waerme_heiz', 'WP_WAERME_WW_KWH' => 'waerme_ww',

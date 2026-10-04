@@ -10,7 +10,9 @@ Tag, Woche, Monat und Jahr liefert das Symcon-Archiv – die Zähler werden als 
 
 Gerechnet wird mit Zuwächsen. Ein Zuwachs zählt nur, wenn er nicht negativ ist und höchstens der eingestellten Höchstleistung × verstrichene Zeit (mit Reserve) entspricht. Liefert ein Wechselrichter beim Aufwachen einmal 0 oder springt ein Zähler, wird der Wert verworfen und nichts aufaddiert. Bleibt ein Eingang dauerhaft abweichend (etwa nach einem Zählertausch), wird er nach 30 Schritten neu verankert.
 
-Tageszähler, die um Mitternacht auf 0 fallen (z. B. Speicher geladen/entladen), werden als solche markiert; ihr Rücksetzen gilt nicht als Absturz.
+Tageszähler (z. B. Speicher geladen/entladen) werden als solche markiert: Fällt der Zähler, wird sofort neu verankert und nichts gebucht – SolarEdge setzt diese Zähler zweimal täglich auf einen beliebigen kleinen Stand zurück, der Zuwachs seit dem Reset ist also nicht ablesbar. Verloren geht höchstens ein Abfrageintervall.
+
+PV, Hausverbrauch, Eigenverbrauch und Rest werden erst gebucht, wenn die Speicherzähler nachgezogen haben (Wechselrichter und Speicher werden zu verschiedenen Zeiten gelesen). Ein negativer PV-Zuwachs ist dann der **Wandlungsverlust** beim Entladen und bekommt seinen eigenen Zähler, statt die PV ins Minus zu drücken.
 
 ## Wärmepumpe
 
