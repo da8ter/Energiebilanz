@@ -105,6 +105,9 @@ class Energiebilanz extends IPSModuleStrict
         $this->RegisterPropertyBoolean('WpModusWwIstTrue', true);
         $this->RegisterPropertyFloat('WpAktivW', 200.0);
         $this->RegisterAttributeString('Zustand', '');
+        // Welche Positionsordnung zuletzt angewandt wurde — die Sortierung des Nutzers
+        // in der Konsole bleibt bestehen, bis das Modul eine NEUE Ordnung mitbringt.
+        $this->RegisterAttributeInteger('PositionsStand', 0);
         $this->RegisterTimer('Rechnen', 0, 'EBIL_Rechnen($_IPS[\'TARGET\']);');
 
         foreach (self::AUSGABE as $ident => [$name, $typ, $pos]) {
@@ -121,14 +124,24 @@ class Energiebilanz extends IPSModuleStrict
         ], 14);
     }
 
-    /** Namen und Positionen nachziehen, wenn sie sich im Modul geändert haben (RegisterVariable* ändert Bestehendes nicht). */
+    /** Nummer der aktuellen Positionsordnung; hochzählen, wenn sich die Reihenfolge im Modul ändert. */
+    private const POSITIONS_STAND = 1;
+
+    /**
+     * Namen und Positionen nachziehen, wenn sie sich im Modul geändert haben
+     * (RegisterVariable* ändert Bestehendes nicht). Positionen nur EINMAL je
+     * Ordnung: wer in der Konsole umsortiert, behält das.
+     */
     private function NamenNachziehen(): void
     {
-        foreach (self::AUSGABE + ['EINSPEISUNG' => ['', '', 14]] as $ident => [, , $pos]) {
-            $id = @$this->GetIDForIdent($ident);
-            if ($id !== false && $id > 0 && IPS_GetObject($id)['ObjectPosition'] !== $pos) {
-                IPS_SetPosition($id, $pos);
+        if ($this->ReadAttributeInteger('PositionsStand') !== self::POSITIONS_STAND) {
+            foreach (self::AUSGABE + ['EINSPEISUNG' => ['', '', 14]] as $ident => [, , $pos]) {
+                $id = @$this->GetIDForIdent($ident);
+                if ($id !== false && $id > 0 && IPS_GetObject($id)['ObjectPosition'] !== $pos) {
+                    IPS_SetPosition($id, $pos);
+                }
             }
+            $this->WriteAttributeInteger('PositionsStand', self::POSITIONS_STAND);
         }
         foreach (self::AUSGABE as $ident => [$name]) {
             $id = @$this->GetIDForIdent($ident);
