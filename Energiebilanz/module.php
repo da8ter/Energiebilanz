@@ -43,25 +43,25 @@ class Energiebilanz extends IPSModuleStrict
 
     /** Ausgänge: Ident => [Name, Typ (kwh|eur|w|pct), Position]. */
     private const AUSGABE = [
-        'PV_KWH' => ['PV generation', 'kwh', 10], 'HAUS_KWH' => ['House consumption', 'kwh', 11],
-        'EIGEN_KWH' => ['Self-consumption', 'kwh', 12], 'BEZUG_KWH' => ['Grid import', 'kwh', 13],
-        'EINSPEISUNG_KWH' => ['Grid export', 'kwh', 14], 'LADEN_KWH' => ['Battery charged', 'kwh', 15],
-        'ENTLADEN_KWH' => ['Battery discharged', 'kwh', 16], 'VERLUSTE_KWH' => ['Battery conversion losses', 'kwh', 22], 'WP_KWH' => ['Heat pump electricity total', 'kwh', 17], 'WP_VERDICHTER_KWH' => ['Heat pump compressor', 'kwh', 20],
-        'HEIZSTAB_KWH' => ['Heating rod', 'kwh', 21],
-        'WALLBOX_KWH' => ['Wallbox', 'kwh', 18], 'REST_KWH' => ['House without heat pump and wallbox', 'kwh', 19],
-        'KOSTEN_EUR' => ['Grid costs', 'eur', 30], 'ERLOES_EUR' => ['Feed-in revenue', 'eur', 31],
-        'ERSPARNIS_EUR' => ['Savings from own power', 'eur', 32],
-        'PV_W' => ['PV power', 'w', 40], 'PV1_W' => ['PV power main system', 'w', 38], 'PV2_W' => ['PV power second system', 'w', 39], 'NETZ_W' => ['Grid power', 'w', 41], 'SPEICHER_W' => ['Battery power', 'w', 42],
-        'HAUS_W' => ['House power', 'w', 43], 'WP_W' => ['Heat pump power', 'w', 44], 'HEIZSTAB_W' => ['Heating rod power', 'w', 44], 'WALLBOX_W' => ['Wallbox power', 'w', 45],
-        'REST_W' => ['House power without heat pump and wallbox', 'w', 46],
-        'AUTARKIE' => ['Self-sufficiency today', 'pct', 50], 'EIGENQUOTE' => ['Self-consumption rate today', 'pct', 51],
-        'WP_WAERME_KWH' => ['Heat pump heat total', 'kwh', 60], 'WP_STROM_HEIZ_KWH' => ['Heat pump power for heating', 'kwh', 61],
-        'WP_STROM_WW_KWH' => ['Heat pump power for hot water', 'kwh', 62], 'WP_STROM_STANDBY_KWH' => ['Heat pump standby power', 'kwh', 63],
-        'WP_WAERME_HEIZ_KWH' => ['Heat for heating', 'kwh', 64], 'WP_WAERME_WW_KWH' => ['Heat for hot water', 'kwh', 65],
-        'WP_WAERME_W' => ['Heat pump heat output', 'w', 66], 'WP_COP' => ['Heat pump COP now', 'zahl', 67],
-        'WP_AZ_HEUTE' => ['Heat pump performance factor today', 'zahl', 68], 'WP_AZ_GESAMT' => ['Heat pump performance factor total', 'zahl', 69],
-        'WP_AZ_HEIZ_HEUTE' => ['Performance factor heating today', 'zahl', 70], 'WP_AZ_HEIZ_GESAMT' => ['Performance factor heating total', 'zahl', 71],
-        'WP_AZ_WW_HEUTE' => ['Performance factor hot water today', 'zahl', 72], 'WP_AZ_WW_GESAMT' => ['Performance factor hot water total', 'zahl', 73],
+        'PV_KWH' => ['PV generation', 'kwh', 50], 'HAUS_KWH' => ['House consumption', 'kwh', 51],
+        'EIGEN_KWH' => ['Self-consumption', 'kwh', 52], 'BEZUG_KWH' => ['Grid import', 'kwh', 53],
+        'EINSPEISUNG_KWH' => ['Grid export', 'kwh', 54], 'LADEN_KWH' => ['Battery charged', 'kwh', 55],
+        'ENTLADEN_KWH' => ['Battery discharged', 'kwh', 56], 'VERLUSTE_KWH' => ['Battery conversion losses', 'kwh', 57], 'WP_KWH' => ['Heat pump electricity total', 'kwh', 70], 'WP_VERDICHTER_KWH' => ['Heat pump compressor', 'kwh', 71],
+        'HEIZSTAB_KWH' => ['Heating rod', 'kwh', 72],
+        'WALLBOX_KWH' => ['Wallbox', 'kwh', 59], 'REST_KWH' => ['House without heat pump and wallbox', 'kwh', 58],
+        'KOSTEN_EUR' => ['Grid costs', 'eur', 90], 'ERLOES_EUR' => ['Feed-in revenue', 'eur', 91],
+        'ERSPARNIS_EUR' => ['Savings from own power', 'eur', 92],
+        'PV_W' => ['PV power', 'w', 10], 'PV1_W' => ['PV power main system', 'w', 11], 'PV2_W' => ['PV power second system', 'w', 12], 'NETZ_W' => ['Grid power', 'w', 13], 'SPEICHER_W' => ['Battery power', 'w', 15],
+        'HAUS_W' => ['House power', 'w', 16], 'WP_W' => ['Heat pump power', 'w', 18], 'HEIZSTAB_W' => ['Heating rod power', 'w', 19], 'WALLBOX_W' => ['Wallbox power', 'w', 20],
+        'REST_W' => ['House power without heat pump and wallbox', 'w', 17],
+        'AUTARKIE' => ['Self-sufficiency today', 'pct', 30], 'EIGENQUOTE' => ['Self-consumption rate today', 'pct', 31],
+        'WP_WAERME_KWH' => ['Heat pump heat total', 'kwh', 76], 'WP_STROM_HEIZ_KWH' => ['Heat pump power for heating', 'kwh', 73],
+        'WP_STROM_WW_KWH' => ['Heat pump power for hot water', 'kwh', 74], 'WP_STROM_STANDBY_KWH' => ['Heat pump standby power', 'kwh', 75],
+        'WP_WAERME_HEIZ_KWH' => ['Heat for heating', 'kwh', 77], 'WP_WAERME_WW_KWH' => ['Heat for hot water', 'kwh', 78],
+        'WP_WAERME_W' => ['Heat pump heat output', 'w', 21], 'WP_COP' => ['Heat pump COP now', 'zahl', 22],
+        'WP_AZ_HEUTE' => ['Heat pump performance factor today', 'zahl', 32], 'WP_AZ_GESAMT' => ['Heat pump performance factor total', 'zahl', 79],
+        'WP_AZ_HEIZ_HEUTE' => ['Performance factor heating today', 'zahl', 33], 'WP_AZ_HEIZ_GESAMT' => ['Performance factor heating total', 'zahl', 80],
+        'WP_AZ_WW_HEUTE' => ['Performance factor hot water today', 'zahl', 34], 'WP_AZ_WW_GESAMT' => ['Performance factor hot water total', 'zahl', 81],
     ];
 
     /** Frühere Namen, die beim Update umbenannt werden — eigene Umbenennungen des Nutzers bleiben stehen. */
@@ -118,12 +118,18 @@ class Energiebilanz extends IPSModuleStrict
                 ['Value' => true, 'Caption' => $this->Translate('Feeding in'), 'IconActive' => true, 'IconValue' => 'HollowArrowUp',
                  'ColorActive' => true, 'ColorValue' => 0x2ECC71, 'ContentColorActive' => false, 'ContentColorValue' => -1],
             ], JSON_UNESCAPED_UNICODE),
-        ], 47);
+        ], 14);
     }
 
-    /** Namen nachziehen, wenn sie sich im Modul geändert haben (RegisterVariable* benennt nicht um). */
+    /** Namen und Positionen nachziehen, wenn sie sich im Modul geändert haben (RegisterVariable* ändert Bestehendes nicht). */
     private function NamenNachziehen(): void
     {
+        foreach (self::AUSGABE + ['EINSPEISUNG' => ['', '', 14]] as $ident => [, , $pos]) {
+            $id = @$this->GetIDForIdent($ident);
+            if ($id !== false && $id > 0 && IPS_GetObject($id)['ObjectPosition'] !== $pos) {
+                IPS_SetPosition($id, $pos);
+            }
+        }
         foreach (self::AUSGABE as $ident => [$name]) {
             $id = @$this->GetIDForIdent($ident);
             $soll = $this->Translate($name);
