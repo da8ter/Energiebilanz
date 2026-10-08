@@ -2,7 +2,7 @@
 
 Symcon-Modul, das Erzeugung, Verbrauch, Netz, Speicher, Wärmepumpe und Wallbox an einer Stelle bilanziert: aus Zählerständen und Leistungen der Geräte entstehen eigene, nur steigende Zähler, die das Archiv als Zähler führt. Öffentliches Repo `da8ter/Energiebilanz`, Arbeitszweig `master`.
 
-Projektwissen (Entscheidungen, Fallen): **`docs/README.md`**. Offenes: `docs/stand.md`. Betriebsdaten des eigenen Systems stehen in `CLAUDE.local.md` (nicht eingecheckt).
+Projektwissen (Entscheidungen, Fallen): **`.claude/docs/README.md`**. Offenes: `.claude/docs/stand.md`. Betriebsdaten des eigenen Systems stehen in `CLAUDE.local.md` (nicht eingecheckt).
 
 ## Aufbau
 
@@ -32,4 +32,4 @@ Jede Änderung am Rechenkern bekommt eine Zusicherung im Prüfstand; Fälle aus 
 
 ## Plattformwissen
 
-Gemessenes Symcon-Verhalten für alle Module: https://github.com/da8ter/SymDo-Family-Organizer/tree/SymDo-Beta/docs/plattform (lokal `../List/docs/plattform/`). Für dieses Modul besonders `variablen-und-darstellungen.md` (Archiv, `AC_*`-Grenzen) und `module-strict-und-php.md`.
+Gemessenes Symcon-Verhalten für alle Module: https://github.com/da8ter/SymDo-Family-Organizer/tree/SymDo-Beta/.claude/docs/plattform (lokal `../List/.claude/docs/plattform/`). Für dieses Modul besonders `variablen-und-darstellungen.md` (Archiv, `AC_*`-Grenzen) und `module-strict-und-php.md`.
