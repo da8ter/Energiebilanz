@@ -190,6 +190,7 @@ final class BilanzRechner
             $stand['tag'] = $heute;
             $stand['tagStart'] = $stand['summe'];
             $stand['tagStartAus'] = $stand['aus'] ?? [];
+            $stand['tagStartGeld'] = $stand['geld'];
         }
         return $stand;
     }
@@ -278,25 +279,55 @@ final class BilanzRechner
      */
     public static function tagesquoten(array $stand, bool $speicherImAc): array
     {
-        $aus = $stand['aus'] ?? null;
-        if (is_array($aus)) {
-            $t = $stand['tagStartAus'] ?? [];
-            $pv = (float)($aus['pv'] ?? 0) - (float)($t['pv'] ?? 0);
-            $haus = (float)($aus['haus'] ?? 0) - (float)($t['haus'] ?? 0);
-            $eigen = (float)($aus['eigen'] ?? 0) - (float)($t['eigen'] ?? 0);
-            $bezug = (float)($stand['summe']['bezug'] ?? 0) - (float)($stand['tagStart']['bezug'] ?? 0);
-        } else {
-            $tag = [];
-            foreach (self::ZAEHLER as $k) {
-                $tag[$k] = (float)($stand['summe'][$k] ?? 0.0) - (float)($stand['tagStart'][$k] ?? 0.0);
-            }
-            $b = self::bilanz($tag, $speicherImAc);
-            [$pv, $haus, $eigen, $bezug] = [$b['pv'], $b['haus'], $b['eigen'], $b['bezug']];
-        }
+        $b = self::tagesbilanz($stand, $speicherImAc);
+        [$pv, $haus, $eigen, $bezug] = [$b['pv'], $b['haus'], $b['eigen'], $b['bezug']];
         return [
             'autarkie'   => $haus > 0.01 ? max(0.0, min(100.0, (1 - $bezug / $haus) * 100)) : null,
             'eigenquote' => $pv > 0.01 ? max(0.0, min(100.0, $eigen / $pv * 100)) : null,
         ];
+    }
+
+    /**
+     * Energie und Geld des laufenden Tages (für die Kachel): kWh für PV, Haus,
+     * Bezug und Einspeisung, € für Kosten, Erlös und Ersparnis. Ein Zustand aus
+     * der Zeit vor dem Geld-Tagesanfang zeigt bis Mitternacht 0 €.
+     *
+     * @return array{pv: float, haus: float, bezug: float, einspeisung: float, kosten: float, erloes: float, ersparnis: float}
+     */
+    public static function tageswerte(array $stand, bool $speicherImAc): array
+    {
+        $b = self::tagesbilanz($stand, $speicherImAc);
+        $geld = $stand['geld'] ?? [];
+        $start = $stand['tagStartGeld'] ?? $geld;
+        $aus = [];
+        foreach (['pv', 'haus', 'bezug', 'einspeisung'] as $k) {
+            $aus[$k] = max(0.0, (float)$b[$k]);
+        }
+        foreach (['kosten', 'erloes', 'ersparnis'] as $k) {
+            $aus[$k] = max(0.0, (float)($geld[$k] ?? 0.0) - (float)($start[$k] ?? 0.0));
+        }
+        return $aus;
+    }
+
+    /**
+     * Die Bilanz des laufenden Tages in kWh. PV, Haus und Eigenverbrauch kommen
+     * aus den abgeleiteten Zählern, sobald es sie gibt.
+     *
+     * @return array<string, float>
+     */
+    private static function tagesbilanz(array $stand, bool $speicherImAc): array
+    {
+        $tag = [];
+        foreach (self::ZAEHLER as $k) {
+            $tag[$k] = (float)($stand['summe'][$k] ?? 0.0) - (float)($stand['tagStart'][$k] ?? 0.0);
+        }
+        $b = self::bilanz($tag, $speicherImAc);
+        if (is_array($stand['aus'] ?? null)) {
+            foreach (['pv', 'haus', 'eigen'] as $k) {
+                $b[$k] = (float)($stand['aus'][$k] ?? 0.0) - (float)($stand['tagStartAus'][$k] ?? 0.0);
+            }
+        }
+        return $b;
     }
 
     /**

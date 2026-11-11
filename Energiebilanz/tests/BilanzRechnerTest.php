@@ -45,6 +45,8 @@ pruefe('Haus = pv1 + pv2 + Bezug − Einspeisung', $r($a['haus']), 1.0);
 pruefe('Eigenverbrauch = PV − Einspeisung', $r($a['eigen']), 1.1);
 pruefe('Rest = Haus − WP − Wallbox', $r($a['rest']), 0.9);
 pruefe('Geld: Kosten, Erlös, Ersparnis', [$r($a['kosten']), $r($a['erloes']), $r($a['ersparnis'])], [0.06, 0.024, 0.33]);
+pruefe('Tageswerte: Energie und Geld seit dem Tagesanfang', array_map($r, BilanzRechner::tageswerte($s, true)),
+    ['pv' => 1.4, 'haus' => 1.0, 'bezug' => 0.2, 'einspeisung' => 0.3, 'kosten' => 0.06, 'erloes' => 0.024, 'ersparnis' => 0.33]);
 
 // ── Ausreißer wie am 03.10.2026: 0 → 3970 und zurück ───────────────────────
 $vor = $a['pv'];
@@ -72,6 +74,11 @@ $sr = BilanzRechner::schritt($sr, $m(['entladen' => 2.308], ['laden', 'entladen'
 $sr = BilanzRechner::schritt($sr, $m(['entladen' => 2.353], ['laden', 'entladen']), $t0 + 180, $opt);
 pruefe('Reset auf 2,308: nichts gebucht, nächster Schritt zählt +0,045', $r($sr['summe']['entladen']), 0.099);
 pruefe('Neuer Tag: Tagesanfang neu gesetzt', $s3['tag'], '2026-10-04');
+$tw = BilanzRechner::tageswerte($s3, true);
+pruefe('Neuer Tag: Tageswerte zählen nur, was seit Mitternacht floss (0,03 kWh geladen)', [$r($tw['bezug']), $r($tw['kosten']), $r($tw['ersparnis'])], [0.0, 0.0, 0.009]);
+$alt = $s;
+unset($alt['tagStartGeld']);
+pruefe('Zustand ohne Geld-Tagesanfang: 0 € statt der ganzen Summe', BilanzRechner::tageswerte($alt, true)['kosten'], 0.0);
 
 // ── Neu verankern nach Zählertausch ────────────────────────────────────────
 $s4 = $s;
