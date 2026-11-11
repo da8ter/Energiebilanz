@@ -39,6 +39,9 @@
     check('Tempo liegt an der laufenden Animation an, nicht nur am Attribut', matchMedia('(prefers-reduced-motion: reduce)').matches || seg('pv').children[1].getAnimations().length === 1);
     check('Wallbox: Ladestand des Fahrzeugs als Ring und Text', $('soc-wallbox').getAttribute('stroke-dasharray') === '80 100' && $('d-wallbox').textContent === '80 %' && !$('n-wallbox').classList.contains('nosoc'));
     check('Wärmepumpe: Wärmeleistung 3,25 von 6,5 kW als halber Ring und Text', $('soc-wp').getAttribute('stroke-dasharray') === '50 100' && /^Heat 3[.,]3 kW$/.test($('h-wp').textContent));
+    const bw = id => $(id).style.width;
+    check('Tagesbalken: PV 18,4 = Eigenverbrauch 10,5 + Einspeisung 7,9; Verbrauch 12,6 = eigener Strom 10,5 + Bezug 2,1', bw('b-eigenpv') === '57.1%' && bw('b-einspeisung') === '42.9%' && bw('b-eigenhaus') === '57.1%' && bw('b-bezug') === '11.4%' && /^10[.,]5$/.test($('t-eigenpv').textContent) && /^18[.,]4 kWh$/.test($('t-pv').textContent));
+    check('Geldbalken: Ersparnis voll, Erlös und Kosten je ein Fünftel', bw('b-ersparnis') === '100%' && bw('b-erloes') === '20%' && bw('b-kosten') === '20%');
     check('Kennzahlen: Ring 83 %, Ersparnis 3,15 €', $('r-autarkie').getAttribute('stroke-dasharray') === '83 100' && /^3[.,]15 €$/.test($('g-ersparnis').textContent));
 
     send({ w: { netz: 800, speicher: -900 } });

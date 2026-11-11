@@ -15,7 +15,7 @@ trait KachelTrait
     private const KACHEL_TEXTE = [
         'Photovoltaics', 'Grid', 'Grid import', 'Feeding in', 'Battery', 'charging', 'discharging',
         'Heat pump', 'Wallbox', 'Heating rod', 'Other', 'PV', 'PV today', 'Consumption', 'Import', 'Export',
-        'Self-sufficiency', 'Self-consumption', 'Savings', 'Revenue', 'Costs', 'COP', 'PF', 'Heat',
+        'Self-sufficiency', 'Self-consumption', 'Own power', 'Savings', 'Revenue', 'Costs', 'COP', 'PF', 'Heat',
     ];
 
     public function GetVisualizationTile(): string

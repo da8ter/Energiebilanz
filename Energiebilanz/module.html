@@ -175,8 +175,8 @@
   .row { position: relative; display: flex; justify-content: space-between; align-items: center; }
   .r1 { flex-direction: column; justify-content: center; gap: 6px; }
   .pvrow { display: flex; justify-content: center; gap: calc(var(--d) * 1.3); }
-  .pvsum { display: none; font-size: 12px; font-weight: 600; white-space: nowrap; }
-  .pvsum b { font-size: 14px; font-weight: 700; margin-left: 4px; }
+  .pvsum { display: none; font-size: 12px; font-weight: 600; white-space: nowrap; text-align: center; line-height: 1.25; }
+  .pvsum b { display: block; font-size: 15px; font-weight: 700; }
   #app.multi .pvsum { display: block; }
   #app.multi .side, #app:not(.multi) #n-pv2 { display: none; }
   .r2 { margin-bottom: 1.5em; }
@@ -265,11 +265,21 @@
   .rg svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); fill: none; stroke-width: 9; }
   .rg .trk { stroke: var(--soft); }
   .rg .val { stroke: var(--accent-color); }
-  .money { flex-direction: column; align-items: stretch; gap: 5px; min-width: 124px; }
-  .money div { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: var(--dim); }
-  .money b { font-size: 12px; color: var(--content-color); }
-  .money .einsp b { color: var(--einsp); }
-  .money .bezug b { color: var(--bezug); }
+  /* Tagesenergie und Geld als Balken: Länge im Verhältnis zum größten Wert der Gruppe. */
+  .en, .money { display: grid; grid-template-columns: auto minmax(40px, 1fr) auto; align-items: center; column-gap: 8px; row-gap: 4px; font-size: 11px; color: var(--dim); }
+  .en { flex: 1.6 1 0; max-width: 330px; }
+  .money { flex: 1 1 0; max-width: 210px; row-gap: 7px; }
+  .en > b, .money > b { font-size: 12px; font-weight: 700; color: var(--content-color); text-align: right; white-space: nowrap; }
+  .en > small { grid-column: 2 / 4; margin: -1px 0 4px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .en > small b { color: var(--content-color); font-weight: 600; }
+  .en > small .dot:not(:first-child) { margin-left: 8px; }
+  .bt { display: flex; height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
+  .bt i { display: block; height: 100%; width: 0; transition: width .4s ease; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+  .eig { background: var(--pv); }
+  .ein { background: var(--einsp); }
+  .bez { background: var(--bezug); }
+  .acc { background: var(--accent-color); }
   @media (prefers-reduced-motion: reduce) { .flow, .tail { animation: none !important; } }
 </style>
 </head>
@@ -303,20 +313,20 @@
     </div>
   </div>
   <div class="band" id="band">
-    <div class="grp">
-      <div class="st"><b id="t-pv"></b><span><i data-t="PV"></i> kWh</span></div>
-      <div class="st"><b id="t-haus"></b><span><i data-t="Consumption"></i> kWh</span></div>
-      <div class="st bezug"><b id="t-bezug"></b><span><i data-t="Import"></i> kWh</span></div>
-      <div class="st einsp"><b id="t-einspeisung"></b><span><i data-t="Export"></i> kWh</span></div>
+    <div class="grp en">
+      <span data-t="PV"></span><div class="bt"><i class="eig" id="b-eigenpv"></i><i class="ein" id="b-einspeisung"></i></div><b id="t-pv"></b>
+      <small><i class="dot eig"></i><b id="t-eigenpv"></b> <i data-t="Self-consumption"></i><i class="dot ein"></i><b id="t-einspeisung"></b> <i data-t="Export"></i></small>
+      <span data-t="Consumption"></span><div class="bt"><i class="eig" id="b-eigenhaus"></i><i class="bez" id="b-bezug"></i></div><b id="t-haus"></b>
+      <small><i class="dot eig"></i><b id="t-eigenhaus"></b> <i data-t="Own power"></i><i class="dot bez"></i><b id="t-bezug"></b> <i data-t="Import"></i></small>
     </div>
     <div class="grp">
       <div class="rg"><div><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="42"/><circle class="val" id="r-autarkie" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="0 100"/></svg><i id="q-autarkie"></i></div><span><i data-t="Self-sufficiency"></i> %</span></div>
       <div class="rg"><div><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="42"/><circle class="val" id="r-eigenquote" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="0 100"/></svg><i id="q-eigenquote"></i></div><span><i data-t="Self-consumption"></i> %</span></div>
     </div>
     <div class="grp money">
-      <div class="einsp"><span data-t="Savings"></span><b id="g-ersparnis"></b></div>
-      <div><span data-t="Revenue"></span><b id="g-erloes"></b></div>
-      <div class="bezug"><span data-t="Costs"></span><b id="g-kosten"></b></div>
+      <span data-t="Savings"></span><div class="bt"><i class="ein" id="b-ersparnis"></i></div><b id="g-ersparnis"></b>
+      <span data-t="Revenue"></span><div class="bt"><i class="acc" id="b-erloes"></i></div><b id="g-erloes"></b>
+      <span data-t="Costs"></span><div class="bt"><i class="bez" id="b-kosten"></i></div><b id="g-kosten"></b>
     </div>
   </div>
   <div class="band" id="bandS">
@@ -475,7 +485,16 @@
     text('h-wp', heat === null ? '' : t('Heat') + ' ' + watt(heat));
     attr($('soc-wp'), 'stroke-dasharray', (heat === null ? 0 : Math.min(100, Math.round(heat / S.waermeMax * 100))) + ' 100');
     text('d-wp', [S.cop > 0 ? t('COP') + ' ' + num(S.cop, 1) : '', S.az > 0 ? t('PF') + ' ' + num(S.az, 1) : ''].filter(Boolean).join(' · '));
-    ['pv', 'haus', 'bezug', 'einspeisung'].forEach(k => text('t-' + k, num(tag[k], 1)));
+    // Balken der Tagesenergie: PV = Eigenverbrauch + Einspeisung, Verbrauch = eigener Strom + Bezug.
+    const eigenPv = Math.max(0, tag.pv - tag.einspeisung), eigenHaus = Math.max(0, tag.haus - tag.bezug);
+    const scale = Math.max(tag.pv, tag.haus, 0.01), geld = Math.max(tag.ersparnis, tag.erloes, tag.kosten, 0.01);
+    const bar = (id, value, max) => { const e = $(id), w = Math.min(100, value / max * 100).toFixed(1) + '%'; if (e.style.width !== w) e.style.width = w; };
+    bar('b-eigenpv', eigenPv, scale); bar('b-einspeisung', Math.min(tag.einspeisung, tag.pv), scale);
+    bar('b-eigenhaus', eigenHaus, scale); bar('b-bezug', Math.min(tag.bezug, tag.haus), scale);
+    text('t-pv', num(tag.pv, 1) + ' kWh'); text('t-haus', num(tag.haus, 1) + ' kWh');
+    text('t-eigenpv', num(eigenPv, 1)); text('t-einspeisung', num(tag.einspeisung, 1));
+    text('t-eigenhaus', num(eigenHaus, 1)); text('t-bezug', num(tag.bezug, 1));
+    ['ersparnis', 'erloes', 'kosten'].forEach(k => bar('b-' + k, tag[k], geld));
     ['autarkie', 'eigenquote'].forEach(k => {
       text('q-' + k, String(S[k]));
       text('s-' + k, S[k] + ' %');
