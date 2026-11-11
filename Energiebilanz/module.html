@@ -230,16 +230,16 @@
   g[data-lvl="3"] .flow { stroke-width: 10; }
   .anim g[data-on="1"] .flow { opacity: 1; animation: flow 3.6s linear infinite; }
   .anim g[data-rev="1"] .flow { animation-direction: reverse; }
-  /* Schweif: drei kürzer werdende, durchscheinende Striche hinter jedem Punkt, im selben Takt wie der Punkt. */
-  .tail { fill: none; stroke: var(--c); stroke-linejoin: round; opacity: 0; }
-  .t1 { stroke-width: 6; stroke-dasharray: 8 28; --o: 8px; }
-  .t2 { stroke-width: 4.5; stroke-dasharray: 15 21; --o: 15px; }
-  .t3 { stroke-width: 3; stroke-dasharray: 22 14; --o: 22px; }
+  /* Schweif: drei kleiner und blasser werdende Punkte hinter jedem Punkt, im selben Takt wie der Punkt. */
+  .tail { fill: none; stroke: var(--c); stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 0.1 36; opacity: 0; --o: var(--b); }
+  .t1 { stroke-width: 6; --b: 8px; }
+  .t2 { stroke-width: 4.5; --b: 14.5px; }
+  .t3 { stroke-width: 3; --b: 20px; }
   .anim g[data-on="1"] .tail { animation: flow 3.6s linear infinite; }
-  .anim g[data-on="1"] .t1 { opacity: .55; }
-  .anim g[data-on="1"] .t2 { opacity: .38; }
-  .anim g[data-on="1"] .t3 { opacity: .24; }
-  .anim g[data-rev="1"] .tail { animation-direction: reverse; --o: 0px; }
+  .anim g[data-on="1"] .t1 { opacity: .65; }
+  .anim g[data-on="1"] .t2 { opacity: .42; }
+  .anim g[data-on="1"] .t3 { opacity: .25; }
+  .anim g[data-rev="1"] .tail { animation-direction: reverse; --o: calc(var(--b) * -1); }
   @keyframes flow { from { stroke-dashoffset: var(--o, 0px); } to { stroke-dashoffset: calc(var(--o, 0px) - 36px); } }
   .arr { fill: none; stroke: var(--c); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; display: none; }
   #app:not(.anim) g[data-on="1"] .arr { display: block; }
