@@ -26,7 +26,10 @@
     check('Einspeisung: Linie grün und rückwärts', seg('netz').dataset.role === 'einsp' && seg('netz').dataset.rev === '1' && $('l-netz').textContent === 'Feeding in');
     check('Speicher lädt: vorwärts, Ladestand im Text', seg('speicher').dataset.rev === '0' && $('l-speicher').textContent === 'charging · 68 %');
     check('Verbraucher: WP und Sonstiges fließen, Wallbox ruht', seg('c-wp').dataset.on === '1' && seg('c-rest').dataset.on === '1' && seg('c-wallbox').dataset.on === '0' && $('n-wallbox').classList.contains('idle'));
-    check('Sammelschiene trägt die Summe (2,1 kW, Stufe 2)', seg('trunk').dataset.on === '1' && seg('trunk').dataset.lvl === '2');
+    const d = k => seg(k).children[1].getAttribute('d');
+    const startX = k => parseFloat(d(k).slice(1));
+    check('Jeder Verbraucher hat seine eigene Linie ab dem Haus, mit runden Ecken und ohne Sammelschiene', ['wp', 'wallbox', 'heizstab', 'rest'].every(k => (d('c-' + k).match(/Q/g) || []).length === 2) && !seg('trunk'));
+    check('Die Linien starten nebeneinander in der Reihenfolge der Verbraucher', startX('c-wp') < startX('c-wallbox') && startX('c-wallbox') < startX('c-heizstab') && startX('c-heizstab') < startX('c-rest'));
     const rate = k => { const a = seg(k).children[1].getAnimations()[0]; return a ? a.playbackRate : +seg(k).dataset.rate; };
     check('Tempo nach Leistung: PV 4,8 kW schneller als Speicher 1,5 kW schneller als WP 850 W', rate('pv') > rate('speicher') && rate('speicher') > rate('c-wp') && rate('pv') > 2 && rate('c-wp') < 1.5);
     check('Tempo liegt an der laufenden Animation an, nicht nur am Attribut', matchMedia('(prefers-reduced-motion: reduce)').matches || seg('pv').children[1].getAnimations().length === 1);
@@ -59,9 +62,12 @@
     send({ animation: false });
     check('Animation aus: keine Klasse anim', !$('app').classList.contains('anim'));
 
+    send({ knoten: { heizstab: false } });
+    check('Drei Verbraucher: der mittlere hängt gerade unter dem Haus, die äußeren laufen um zwei Ecken', !/Q/.test(d('c-wallbox')) && /Q/.test(d('c-wp')) && /Q/.test(d('c-rest')));
+
     send({ soc: null, knoten: { speicher: false, wp: false, heizstab: false, wallbox: false } });
     check('Ohne Speicher: Knoten und Linie fehlen', $('n-speicher').classList.contains('off') && !seg('speicher'));
-    check('Ohne Verbraucher: Reihe und Schiene fehlen', $('app').classList.contains('nocons') && !seg('trunk'));
+    check('Ohne Verbraucher: Reihe und Linien fehlen', $('app').classList.contains('nocons') && !seg('c-rest'));
 
     handleMessage('kein json');
     handleMessage({ type: 'state' });
