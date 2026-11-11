@@ -239,8 +239,8 @@
       attr(s.g, 'data-rev', rev ? '1' : '0');
       attr(s.g, 'data-lvl', mag < 500 ? '1' : mag < 2500 ? '2' : '3');
       // Tempo stufenlos nach Leistung: die Abspielrate ändert sich, ohne dass die Punkte springen.
-      // Logarithmisch, damit sich auch 20 W und 500 W deutlich unterscheiden: 0,25-fach bei 20 W, 4-fach ab 5 kW.
-      const rate = 0.25 * Math.pow(16, Math.min(1, Math.max(0, Math.log(mag / 20) / Math.log(250))));
+      // Logarithmisch, damit sich auch 20 W und 500 W deutlich unterscheiden: 0,25-fach bei 20 W, 4-fach ab 15 kW.
+      const rate = 0.25 * Math.pow(16, Math.min(1, Math.max(0, Math.log(mag / 20) / Math.log(750))));
       attr(s.g, 'data-rate', rate.toFixed(2));
       if (on) s.g.children[1].getAnimations().forEach(a => { a.playbackRate = rate; });
       attr(s.g.lastChild, 'transform', `translate(${((s.x1 + s.x2) / 2).toFixed(1)} ${((s.y1 + s.y2) / 2).toFixed(1)}) rotate(${(s.a + (rev ? 180 : 0)).toFixed(0)})`);

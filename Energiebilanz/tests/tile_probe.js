@@ -28,7 +28,7 @@
     check('Verbraucher: WP und Sonstiges fließen, Wallbox ruht', seg('c-wp').dataset.on === '1' && seg('c-rest').dataset.on === '1' && seg('c-wallbox').dataset.on === '0' && $('n-wallbox').classList.contains('idle'));
     check('Sammelschiene trägt die Summe (2,1 kW, Stufe 2)', seg('trunk').dataset.on === '1' && seg('trunk').dataset.lvl === '2');
     const rate = k => { const a = seg(k).children[1].getAnimations()[0]; return a ? a.playbackRate : +seg(k).dataset.rate; };
-    check('Tempo nach Leistung: PV 4,8 kW schneller als Speicher 1,5 kW schneller als WP 850 W', rate('pv') > rate('speicher') && rate('speicher') > rate('c-wp') && rate('pv') > 3 && rate('c-wp') < 2);
+    check('Tempo nach Leistung: PV 4,8 kW schneller als Speicher 1,5 kW schneller als WP 850 W', rate('pv') > rate('speicher') && rate('speicher') > rate('c-wp') && rate('pv') > 2 && rate('c-wp') < 1.5);
     check('Tempo liegt an der laufenden Animation an, nicht nur am Attribut', matchMedia('(prefers-reduced-motion: reduce)').matches || seg('pv').children[1].getAnimations().length === 1);
     check('Kennzahlen: Ring 83 %, Ersparnis 3,15 €', $('r-autarkie').getAttribute('stroke-dasharray') === '83 100' && /^3[.,]15 €$/.test($('g-ersparnis').textContent));
 
@@ -36,7 +36,9 @@
     check('Bezug: Linie rot und vorwärts', seg('netz').dataset.role === 'bezug' && seg('netz').dataset.rev === '0' && $('n-netz').classList.contains('bezug'));
     check('Tempo folgt dem neuen Wert (Speicher 900 W langsamer als zuvor 1,5 kW)', rate('speicher') < 2);
     send({ w: { netz: 800, speicher: -900, wp: 22, rest: 484 } });
-    check('Kleine Leistungen unterscheiden sich deutlich: 484 W mindestens viermal so schnell wie 22 W', rate('c-rest') >= 4 * rate('c-wp'));
+    check('Kleine Leistungen unterscheiden sich deutlich: 484 W mindestens dreimal so schnell wie 22 W', rate('c-rest') >= 3 * rate('c-wp'));
+    send({ w: { netz: 800, speicher: -900, wallbox: 10000, rest: 15000, wp: 20000 } });
+    check('Anschlag bei 15 kW: 10 kW darunter, 15 kW und 20 kW gleich schnell (4-fach)', rate('c-wallbox') > 3 && rate('c-wallbox') < 4 && rate('c-rest') === 4 && rate('c-wp') === 4);
     check('Speicher entlädt: rückwärts', seg('speicher').dataset.rev === '1' && $('l-speicher').textContent.indexOf('discharging') === 0);
 
     send({ w: { netz: 10, speicher: 0 } });
