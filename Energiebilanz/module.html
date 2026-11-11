@@ -71,9 +71,7 @@
   g[data-on="1"] .base { stroke: color-mix(in srgb, var(--c) 35%, transparent); }
   .flow { stroke: var(--c); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1 15; opacity: 0; }
   g[data-lvl="3"] .flow { stroke-width: 4.5; }
-  .anim g[data-on="1"] .flow { opacity: 1; animation: flow var(--t, 1.8s) linear infinite; }
-  .anim g[data-lvl="2"] { --t: 1.1s; }
-  .anim g[data-lvl="3"] { --t: .65s; }
+  .anim g[data-on="1"] .flow { opacity: 1; animation: flow 1.6s linear infinite; }
   .anim g[data-rev="1"] .flow { animation-direction: reverse; }
   @keyframes flow { to { stroke-dashoffset: -16; } }
   .arr { fill: none; stroke: var(--c); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: none; }
@@ -239,6 +237,10 @@
       attr(s.g, 'data-on', on ? '1' : '0');
       attr(s.g, 'data-rev', rev ? '1' : '0');
       attr(s.g, 'data-lvl', mag < 500 ? '1' : mag < 2500 ? '2' : '3');
+      // Tempo stufenlos nach Leistung: die Abspielrate ändert sich, ohne dass die Punkte springen.
+      const rate = Math.min(4, 0.4 + 3.6 * Math.pow(mag / 6000, 0.7));
+      attr(s.g, 'data-rate', rate.toFixed(2));
+      if (on) s.g.children[1].getAnimations().forEach(a => { a.playbackRate = rate; });
       attr(s.g.lastChild, 'transform', `translate(${((s.x1 + s.x2) / 2).toFixed(1)} ${((s.y1 + s.y2) / 2).toFixed(1)}) rotate(${(s.a + (rev ? 180 : 0)).toFixed(0)})`);
     });
   }

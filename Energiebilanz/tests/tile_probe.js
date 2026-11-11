@@ -27,10 +27,13 @@
     check('Speicher lädt: vorwärts, Ladestand im Text', seg('speicher').dataset.rev === '0' && $('l-speicher').textContent === 'charging · 68 %');
     check('Verbraucher: WP und Sonstiges fließen, Wallbox ruht', seg('c-wp').dataset.on === '1' && seg('c-rest').dataset.on === '1' && seg('c-wallbox').dataset.on === '0' && $('n-wallbox').classList.contains('idle'));
     check('Sammelschiene trägt die Summe (2,1 kW, Stufe 2)', seg('trunk').dataset.on === '1' && seg('trunk').dataset.lvl === '2');
+    const rate = k => { const a = seg(k).children[1].getAnimations()[0]; return a ? a.playbackRate : +seg(k).dataset.rate; };
+    check('Tempo nach Leistung: PV 4,8 kW schneller als Speicher 1,5 kW schneller als WP 850 W', rate('pv') > rate('speicher') && rate('speicher') > rate('c-wp') && rate('pv') > 3 && rate('c-wp') < 1.5);
     check('Kennzahlen: Ring 83 %, Ersparnis 3,15 €', $('r-autarkie').getAttribute('stroke-dasharray') === '83 100' && /^3[.,]15 €$/.test($('g-ersparnis').textContent));
 
     send({ w: { netz: 800, speicher: -900 } });
     check('Bezug: Linie rot und vorwärts', seg('netz').dataset.role === 'bezug' && seg('netz').dataset.rev === '0' && $('n-netz').classList.contains('bezug'));
+    check('Tempo folgt dem neuen Wert (Speicher 900 W langsamer als zuvor 1,5 kW)', rate('speicher') < 1.5);
     check('Speicher entlädt: rückwärts', seg('speicher').dataset.rev === '1' && $('l-speicher').textContent.indexOf('discharging') === 0);
 
     send({ w: { netz: 10, speicher: 0 } });
