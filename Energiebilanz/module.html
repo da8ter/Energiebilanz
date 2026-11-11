@@ -67,14 +67,15 @@
   #lines g[data-role="bezug"] { --c: var(--bezug); }
   #lines g[data-role="einsp"] { --c: var(--einsp); }
   #lines g[data-role="speicher"] { --c: var(--akku); }
-  .base { stroke: var(--line); stroke-width: 2; stroke-linecap: round; }
+  .base { stroke: var(--line); stroke-width: 4; stroke-linecap: round; }
   g[data-on="1"] .base { stroke: color-mix(in srgb, var(--c) 35%, transparent); }
-  .flow { stroke: var(--c); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1 15; opacity: 0; }
-  g[data-lvl="3"] .flow { stroke-width: 4.5; }
-  .anim g[data-on="1"] .flow { opacity: 1; animation: flow 1.6s linear infinite; }
+  .flow { stroke: var(--c); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 0.1 24; opacity: 0; }
+  g[data-lvl="1"] .flow { stroke-width: 7; }
+  g[data-lvl="3"] .flow { stroke-width: 10; }
+  .anim g[data-on="1"] .flow { opacity: 1; animation: flow 2.4s linear infinite; }
   .anim g[data-rev="1"] .flow { animation-direction: reverse; }
-  @keyframes flow { to { stroke-dashoffset: -16; } }
-  .arr { fill: none; stroke: var(--c); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: none; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  .arr { fill: none; stroke: var(--c); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; display: none; }
   #app:not(.anim) g[data-on="1"] .arr { display: block; }
 
   .band { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--soft); }
@@ -224,7 +225,7 @@
     const p = v => v.toFixed(1);
     $('lines').innerHTML = L.map(s => {
       const xy = `x1="${p(s.x1)}" y1="${p(s.y1)}" x2="${p(s.x2)}" y2="${p(s.y2)}"`;
-      return `<g data-k="${s.k}"><line class="base" ${xy}/><line class="flow" ${xy}/><path class="arr" d="M-3.5-4.5L2.5 0l-6 4.5"/></g>`;
+      return `<g data-k="${s.k}"><line class="base" ${xy}/><line class="flow" ${xy}/><path class="arr" d="M-5-7L4 0l-9 7"/></g>`;
     }).join('');
     segs = L.map((s, i) => Object.assign(s, { g: $('lines').children[i], a: Math.atan2(s.y2 - s.y1, s.x2 - s.x1) * 180 / Math.PI }));
     flows();
