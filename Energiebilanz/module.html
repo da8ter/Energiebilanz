@@ -223,10 +223,10 @@
   #lines g[data-role="einsp"] { --c: var(--einsp); }
   #lines g[data-role="speicher"] { --c: var(--akku); }
   .base, .flow { fill: none; stroke-linejoin: round; }
-  /* Die Linie ist so dick wie ihr Hauptpunkt (7, 8 oder 10 px je nach Leistung). */
-  .base { stroke: var(--line); stroke-width: 7; stroke-linecap: round; }
-  g[data-on="1"][data-lvl="2"] .base { stroke-width: 8; }
-  g[data-on="1"][data-lvl="3"] .base { stroke-width: 10; }
+  /* Die Linie ist 2 px dicker als ihr Hauptpunkt (Punkt 7, 8 oder 10 px je nach Leistung). */
+  .base { stroke: var(--line); stroke-width: 9; stroke-linecap: round; }
+  g[data-on="1"][data-lvl="2"] .base { stroke-width: 10; }
+  g[data-on="1"][data-lvl="3"] .base { stroke-width: 12; }
   g[data-on="1"] .base { stroke: color-mix(in srgb, var(--c) 35%, transparent); }
   .flow { stroke: var(--c); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 0.1 36; opacity: 0; }
   g[data-lvl="1"] .flow { stroke-width: 7; }
@@ -368,7 +368,7 @@
     const h = box('haus'), n = box('netz');
     // Jede PV-Anlage hat ihre eigene Linie zum Haus; bei mehreren landen sie nebeneinander auf dem Haus.
     const pvs = (S.knoten.pv2 ? [['pv', 'pv1'], ['pv2', 'pv2']] : [['pv', 'pv']]).map(([k, w]) => Object.assign(box(k), { w })).sort((a, b) => a.x - b.x);
-    const pvGap = Math.min(15, h.r * 0.44);
+    const pvGap = Math.min(17, h.r * 0.5);
     pvs.forEach((o, i) => {
       const dx = (i - (pvs.length - 1) / 2) * pvGap, ex = h.x + dx, ey = h.y - Math.sqrt(Math.max(0, h.r * h.r - dx * dx));
       // Mehrere Anlagen: seitlich aus dem Kreis zur Mitte hin, dann mit runder Ecke nach unten aufs Haus.
@@ -385,7 +385,7 @@
       // biegen höher ab, die inneren tiefer: so kreuzt sich nichts.
       const c = CONS.filter(shown).map(box).sort((a, b) => a.x - b.x);
       const from = h.y + h.r, top = Math.min(...c.map(o => o.y - o.r));
-      const gap = Math.min(15, h.r * 0.44);
+      const gap = Math.min(17, h.r * 0.5);
       const depth = side => side.forEach((o, i) => { o.lvl = from + (top - from) * (i + 1) / (side.length + 1); });
       depth(c.filter(o => o.x < h.x - 1));
       depth(c.filter(o => o.x > h.x + 1).reverse());
