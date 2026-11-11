@@ -172,7 +172,12 @@
   #app.nocons #flow { --d: clamp(44px, min(28cqh, 19cqw), 76px); justify-content: space-around; }
   #lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
   .row { position: relative; display: flex; justify-content: space-between; align-items: center; }
-  .r1 { justify-content: center; }
+  .r1 { flex-direction: column; justify-content: center; gap: 6px; }
+  .pvrow { display: flex; justify-content: center; gap: calc(var(--d) * 1.3); }
+  .pvsum { display: none; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pvsum b { font-size: 14px; font-weight: 700; margin-left: 4px; }
+  #app.multi .pvsum { display: block; }
+  #app.multi .side, #app:not(.multi) #n-pv2 { display: none; }
   .r2 { margin-bottom: 1.5em; }
   .r3 { justify-content: space-around; align-items: flex-start; }
   #app.nocons .r3 { display: none; }
@@ -188,7 +193,7 @@
   .c b { font-size: calc(var(--d) * .19); font-weight: 700; white-space: nowrap; }
   #n-haus .c { width: calc(var(--d) * 1.22); height: calc(var(--d) * 1.22); --c: var(--content-color); background: var(--soft); }
   #n-haus .c b { font-size: calc(var(--d) * .22); }
-  #n-pv { --c: var(--pv); }
+  .node.pv { --c: var(--pv); }
   #n-speicher { --c: var(--akku); }
   .node.bezug { --c: var(--bezug); }
   .node.einsp { --c: var(--einsp); }
@@ -258,9 +263,13 @@
   <div id="flow">
     <svg id="lines"></svg>
     <div class="row r1">
-      <div class="node" id="n-pv">
-        <div class="c"><i class="ic fa-light fa-solar-panel"></i><b id="v-pv"></b></div>
-        <div class="side"><span data-t="Photovoltaics"></span><small id="d-pv"></small></div>
+      <div class="pvsum"><span data-t="Photovoltaics"></span> <b id="v-pvsum"></b></div>
+      <div class="pvrow">
+        <div class="node pv" id="n-pv">
+          <div class="c"><i class="ic fa-light fa-solar-panel"></i><b id="v-pv"></b></div>
+          <div class="side"><span data-t="Photovoltaics"></span></div>
+        </div>
+        <div class="node pv" id="n-pv2"><div class="c"><i class="ic fa-light fa-solar-panel"></i><b id="v-pv2"></b></div></div>
       </div>
     </div>
     <div class="row r2">
@@ -343,8 +352,15 @@
     // Jede Linie ist ein Streckenzug; Ecken werden abgerundet, damit Linie und Punkte um die Ecke laufen.
     const L = [];
     const add = (k, role, pts, val) => L.push({ k, role, pts, val });
-    const h = box('haus'), pv = box('pv'), n = box('netz');
-    add('pv', 'pv', [[pv.x, pv.y + pv.r], [h.x, h.y - h.r]], s => s.w.pv);
+    const h = box('haus'), n = box('netz');
+    // Jede PV-Anlage hat ihre eigene Linie zum Haus; bei mehreren landen sie nebeneinander auf dem Haus.
+    const pvs = (S.knoten.pv2 ? [['pv', 'pv1'], ['pv2', 'pv2']] : [['pv', 'pv']]).map(([k, w]) => Object.assign(box(k), { w })).sort((a, b) => a.x - b.x);
+    const pvGap = Math.min(13, h.r * 0.36), pvLvl = (Math.max(...pvs.map(o => o.y + o.r)) + h.y - h.r) / 2;
+    pvs.forEach((o, i) => {
+      const dx = (i - (pvs.length - 1) / 2) * pvGap, ex = h.x + dx, ey = h.y - Math.sqrt(Math.max(0, h.r * h.r - dx * dx));
+      const pts = Math.abs(o.x - ex) < 1 ? [[o.x, o.y + o.r], [ex, ey]] : [[o.x, o.y + o.r], [o.x, pvLvl], [ex, pvLvl], [ex, ey]];
+      add(o.k, 'pv', pts, s => s.w[o.w]);
+    });
     add('netz', 'netz', [[n.x + n.r, n.y], [h.x - h.r, h.y]], s => s.w.netz);
     if (shown('speicher')) {
       const b = box('speicher');
@@ -407,9 +423,13 @@
   function render() {
     const w = S.w, q = S.schwelle, tag = S.tag;
     cls(app, 'anim', !!S.animation && !still);
-    text('v-pv', watt(w.pv));
-    text('d-pv', S.knoten.pv2 ? watt(w.pv1) + ' + ' + watt(w.pv2) : '');
-    cls($('n-pv'), 'idle', w.pv <= q);
+    const multi = !!S.knoten.pv2;
+    cls(app, 'multi', multi);
+    text('v-pvsum', watt(w.pv));
+    text('v-pv', watt(multi ? w.pv1 : w.pv));
+    text('v-pv2', watt(w.pv2));
+    cls($('n-pv'), 'idle', (multi ? w.pv1 : w.pv) <= q);
+    cls($('n-pv2'), 'idle', w.pv2 <= q);
     text('v-haus', watt(w.haus));
     const netz = $('n-netz'), im = w.netz > q, ex = w.netz < -q;
     text('v-netz', watt(w.netz));

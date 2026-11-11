@@ -20,7 +20,9 @@
   };
   try {
     send({ texts: { Other: 'Sonstiges' } });
-    check('Werte: PV 4,8 kW, Haus 2,1 kW, WP 850 W', /^4[.,]8 kW$/.test($('v-pv').textContent) && /^2[.,]1 kW$/.test($('v-haus').textContent) && $('v-wp').textContent === '850 W');
+    check('Zwei PV-Anlagen: Summe 4,8 kW darüber, Anlagen 3,6 und 1,2 kW einzeln', $('app').classList.contains('multi') && /^4[.,]8 kW$/.test($('v-pvsum').textContent) && /^3[.,]6 kW$/.test($('v-pv').textContent) && /^1[.,]2 kW$/.test($('v-pv2').textContent));
+    check('Zwei PV-Anlagen: jede mit eigener Linie zum Haus, nebeneinander und mit runden Ecken', /Q/.test(seg('pv').children[1].getAttribute('d')) && /Q/.test(seg('pv2').children[1].getAttribute('d')) && seg('pv').dataset.on === '1' && seg('pv2').dataset.on === '1');
+    check('Werte: Haus 2,1 kW, WP 850 W', /^2[.,]1 kW$/.test($('v-haus').textContent) && $('v-wp').textContent === '850 W');
     check('Texte aus dem Startzustand', document.querySelector('#n-rest span').textContent === 'Sonstiges');
     check('Animation an: Klasse anim', $('app').classList.contains('anim') || matchMedia('(prefers-reduced-motion: reduce)').matches);
     check('Einspeisung: Linie grün und rückwärts', seg('netz').dataset.role === 'einsp' && seg('netz').dataset.rev === '1' && $('l-netz').textContent === 'Feeding in');
@@ -65,13 +67,14 @@
     send({ knoten: { heizstab: false } });
     check('Drei Verbraucher: der mittlere hängt gerade unter dem Haus, die äußeren laufen um zwei Ecken', !/Q/.test(d('c-wallbox')) && /Q/.test(d('c-wp')) && /Q/.test(d('c-rest')));
 
-    send({ soc: null, knoten: { speicher: false, wp: false, heizstab: false, wallbox: false } });
+    send({ soc: null, knoten: { pv2: false, speicher: false, wp: false, heizstab: false, wallbox: false } });
+    check('Eine PV-Anlage: ein Knoten mit der Summe, gerade Linie, keine zweite', !$('app').classList.contains('multi') && /^4[.,]8 kW$/.test($('v-pv').textContent) && !seg('pv2') && !/Q/.test(seg('pv').children[1].getAttribute('d')));
     check('Ohne Speicher: Knoten und Linie fehlen', $('n-speicher').classList.contains('off') && !seg('speicher'));
     check('Ohne Verbraucher: Reihe und Linien fehlen', $('app').classList.contains('nocons') && !seg('c-rest'));
 
     handleMessage('kein json');
     handleMessage({ type: 'state' });
-    check('Kaputte Nachrichten ändern nichts', /^4[.,]8 kW$/.test($('v-pv').textContent));
+    check('Kaputte Nachrichten ändern nichts', /^4[.,]8 kW$/.test($('v-pvsum').textContent));
   } catch (e) {
     check('Ausnahme: ' + e.message, false);
   }

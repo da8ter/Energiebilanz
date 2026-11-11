@@ -20,6 +20,7 @@ Die Instanz bringt eine eigene Kachel für die Kachel-Visualisierung mit. Sie ze
 
 Unter dem Flussbild stehen die Werte des laufenden Tages: PV, Verbrauch, Bezug und Einspeisung in kWh, Autarkie und Eigenverbrauchsquote sowie Ersparnis, Erlös und Kosten in Euro. Kleine Kacheln zeigen eine gekürzte Zeile, sehr kleine nur das Flussbild.
 
+- Ist die Leistung der zweiten PV-Anlage gewählt, stehen beide Anlagen nebeneinander, jede mit eigener Linie zum Haus, und die Summe steht darüber.
 - Speicher, Wärmepumpe, Heizstab und Wallbox erscheinen nur, wenn ihre Leistung unter *Leistung* gewählt ist.
 - **Ladestand:** Unter *Leistung* lässt sich der Ladestand des Speichers in Prozent wählen. Er erscheint als Ring am Speicher und als Variable *Speicher Ladestand*.
 - **Ladestand des Fahrzeugs:** Ebenfalls unter *Leistung* wählbar; er erscheint als Ring an der Wallbox. Eine eigene Variable legt die Instanz dafür nicht an.
