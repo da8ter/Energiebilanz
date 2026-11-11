@@ -7,7 +7,7 @@
   const base = {
     type: 'state',
     w: { pv: 4800, pv1: 3600, pv2: 1200, netz: -1200, speicher: 1500, haus: 2100, wp: 850, heizstab: 0, wallbox: 0, rest: 1250 },
-    soc: 68, cop: 4.2, az: 3.9, autarkie: 83, eigenquote: 57,
+    soc: 68, socWallbox: 80, cop: 4.2, az: 3.9, autarkie: 83, eigenquote: 57,
     tag: { pv: 18.4, haus: 12.6, bezug: 2.1, einspeisung: 7.9, kosten: 0.63, erloes: 0.63, ersparnis: 3.15 },
     knoten: { pv2: true, speicher: true, wp: true, heizstab: true, wallbox: true },
     schwelle: 20, animation: true,
@@ -30,6 +30,7 @@
     const rate = k => { const a = seg(k).children[1].getAnimations()[0]; return a ? a.playbackRate : +seg(k).dataset.rate; };
     check('Tempo nach Leistung: PV 4,8 kW schneller als Speicher 1,5 kW schneller als WP 850 W', rate('pv') > rate('speicher') && rate('speicher') > rate('c-wp') && rate('pv') > 2 && rate('c-wp') < 1.5);
     check('Tempo liegt an der laufenden Animation an, nicht nur am Attribut', matchMedia('(prefers-reduced-motion: reduce)').matches || seg('pv').children[1].getAnimations().length === 1);
+    check('Wallbox: Ladestand des Fahrzeugs als Ring und Text', $('soc-wallbox').getAttribute('stroke-dasharray') === '80 100' && $('d-wallbox').textContent === '80 %' && !$('n-wallbox').classList.contains('nosoc'));
     check('Kennzahlen: Ring 83 %, Ersparnis 3,15 €', $('r-autarkie').getAttribute('stroke-dasharray') === '83 100' && /^3[.,]15 €$/.test($('g-ersparnis').textContent));
 
     send({ w: { netz: 800, speicher: -900 } });
@@ -47,6 +48,9 @@
     const lines = $('lines').innerHTML;
     send({ w: { netz: 10, speicher: 0 } });
     check('Gleiche Nachricht noch einmal: Linien bleiben stehen', $('lines').innerHTML === lines);
+
+    send({ socWallbox: null });
+    check('Wallbox ohne Ladestand: kein Ring, kein Text', $('n-wallbox').classList.contains('nosoc') && $('d-wallbox').textContent === '');
 
     send({ animation: false });
     check('Animation aus: keine Klasse anim', !$('app').classList.contains('anim'));

@@ -109,6 +109,7 @@ class Energiebilanz extends IPSModuleStrict
         $this->RegisterPropertyBoolean('WpModusWwIstTrue', true);
         $this->RegisterPropertyFloat('WpAktivW', 200.0);
         $this->RegisterPropertyInteger('Var_soc', 0);
+        $this->RegisterPropertyInteger('Var_soc_wallbox', 0);
         $this->RegisterPropertyBoolean('Animation', true);
         $this->SetVisualizationType(defined('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN') ? INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN : 1);
         $this->RegisterAttributeString('Zustand', '');
@@ -361,6 +362,7 @@ class Energiebilanz extends IPSModuleStrict
         }
         $ids[] = $this->ReadPropertyInteger('WpModus');
         $ids[] = $this->ReadPropertyInteger('Var_soc');
+        $ids[] = $this->ReadPropertyInteger('Var_soc_wallbox');
         return array_values(array_unique(array_filter($ids, static fn(int $v): bool => $v > 0)));
     }
 
@@ -455,6 +457,7 @@ class Energiebilanz extends IPSModuleStrict
                     ['type' => 'Label', 'caption' => $this->Translate('Factor: 1000 for kW, −1 to flip the sign. Grid: + is import. Battery: + is charging.')],
                 ], $leistung, [
                     ['type' => 'SelectVariable', 'name' => 'Var_soc', 'caption' => $this->Translate('Battery state of charge (%)'), 'width' => '420px', 'validVariableTypes' => [1, 2]],
+                    ['type' => 'SelectVariable', 'name' => 'Var_soc_wallbox', 'caption' => $this->Translate('Vehicle state of charge at the wallbox (%), tile only'), 'width' => '420px', 'validVariableTypes' => [1, 2]],
                 ])],
                 ['type' => 'ExpansionPanel', 'caption' => $this->Translate('Heat pump'), 'items' => [
                     ['type' => 'Label', 'caption' => $this->Translate('Electricity and heat are booked to heating or hot water by operating mode. In heating mode below the threshold the electricity counts as standby.')],

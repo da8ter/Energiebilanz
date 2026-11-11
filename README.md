@@ -22,6 +22,7 @@ Unter dem Flussbild stehen die Werte des laufenden Tages: PV, Verbrauch, Bezug u
 
 - Speicher, Wärmepumpe, Heizstab und Wallbox erscheinen nur, wenn ihre Leistung unter *Leistung* gewählt ist.
 - **Ladestand:** Unter *Leistung* lässt sich der Ladestand des Speichers in Prozent wählen. Er erscheint als Ring am Speicher und als Variable *Speicher Ladestand*.
+- **Ladestand des Fahrzeugs:** Ebenfalls unter *Leistung* wählbar; er erscheint als Ring an der Wallbox. Eine eigene Variable legt die Instanz dafür nicht an.
 - **Animation:** Unter *Kachel* lassen sich die fließenden Linien abschalten. Eine laufende Animation kostet am Anzeigegerät etwas Rechenleistung, solange die Kachel sichtbar ist; ausgeschaltet zeigen Pfeile die Richtung.
 
 ## Wärmepumpe

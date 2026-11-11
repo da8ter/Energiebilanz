@@ -12,6 +12,7 @@ Die Instanz bringt seit dem 11.11.2026 eine eigene Kachel mit (HTML-SDK): Energi
 - **Knoten nach Eingängen:** Speicher, Wärmepumpe, Heizstab und Wallbox erscheinen nur, wenn ihre Leistung gebunden ist. Ohne einen dieser Verbraucher fehlt die untere Reihe ganz, weil „Sonstiges“ dann der Hausverbrauch wäre.
 - **Tageswerte aus dem Rechenkern,** nicht aus dem Archiv (`BilanzRechner::tageswerte()`): Die Kachel soll ohne Archiv laufen und bei jedem Seitenaufbau keine Archivabfrage kosten. Der Kern merkt sich dafür am Tagesanfang auch den Geldstand (`tagStartGeld`).
 - **Ladestand (SOC)** ist ein Eingang ohne Rechnung: `Var_soc` wird auf 0–100 begrenzt in `SPEICHER_SOC` gespiegelt, damit die Kachel und andere Abnehmer eine feste Variable haben.
+- **Ladestand des Fahrzeugs** (`Var_soc_wallbox`, Nutzerwunsch 11.11.2026): Ring an der Wallbox, direkt vom Eingang gelesen und ohne eigene Variable, weil das Fahrzeugmodul den Wert schon führt.
 - **Gesendet wird nach jedem Rechenschritt, aber nur bei Änderung** (Vergleich mit dem letzten Zustand im Buffer). `ApplyChanges` schickt `reload`, weil Knoten und Texte an der Konfiguration hängen.
 - **Startzustand als `handleMessage({…})`** hinter dem HTML: So erkennt ihn das Screenshot-Werkzeug des Release-Skills ohne Anker.
 

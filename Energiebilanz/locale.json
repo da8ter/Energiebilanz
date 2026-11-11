@@ -86,6 +86,7 @@
             "Battery conversion losses": "Wandlungsverluste Speicher",
             "Battery state of charge": "Speicher Ladestand",
             "Battery state of charge (%)": "Speicher Ladestand (%)",
+            "Vehicle state of charge at the wallbox (%), tile only": "Fahrzeug Ladestand an der Wallbox (%), nur für die Kachel",
             "Tile": "Kachel",
             "Animate the energy flows (costs some computing power on the display while the tile is visible)": "Energieflüsse animieren (kostet am Anzeigegerät etwas Rechenleistung, solange die Kachel sichtbar ist)",
             "Photovoltaics": "Photovoltaik",
