@@ -160,6 +160,7 @@
     --dim: color-mix(in srgb, var(--content-color) 60%, transparent);
     --soft: color-mix(in srgb, var(--content-color) 10%, transparent);
     --line: color-mix(in srgb, var(--content-color) 22%, transparent);
+    --fill: color-mix(in srgb, var(--content-color) 10%, var(--card-color));
     --pv: #f5b83d; --bezug: #ff6b6b; --einsp: #2ecc71; --akku: #4da3ff;
     position: fixed; inset: 0; box-sizing: border-box; display: flex; flex-direction: column;
     padding: var(--mt, 36px) var(--ms, 12px) var(--mb, 12px);
@@ -187,17 +188,18 @@
   .c {
     position: relative; box-sizing: border-box; width: var(--d); height: var(--d); border-radius: 50%;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-    border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 14%, transparent);
+    /* Deckend, damit die Linien unter dem Kreis enden und nicht hineinragen. */
+    border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 14%, var(--card-color));
   }
   .c .ic { font-size: calc(var(--d) * .27); color: var(--c); }
   .c b { font-size: calc(var(--d) * .19); font-weight: 700; white-space: nowrap; }
-  #n-haus .c { width: calc(var(--d) * 1.22); height: calc(var(--d) * 1.22); --c: var(--content-color); background: var(--soft); }
+  #n-haus .c { width: calc(var(--d) * 1.22); height: calc(var(--d) * 1.22); --c: var(--content-color); background: var(--fill); }
   #n-haus .c b { font-size: calc(var(--d) * .22); }
   .node.pv { --c: var(--pv); }
   #n-speicher { --c: var(--akku); }
   .node.bezug { --c: var(--bezug); }
   .node.einsp { --c: var(--einsp); }
-  .node.idle .c { border-color: var(--line); background: var(--soft); }
+  .node.idle .c { border-color: var(--line); background: var(--fill); }
   .node.idle .c .ic { color: var(--dim); }
   .side { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 600; }
   i { font-style: normal; }
@@ -224,7 +226,7 @@
   #lines g[data-role="speicher"] { --c: var(--akku); }
   .base, .flow { fill: none; stroke-linejoin: round; }
   /* Die Linie ist 2 px dicker als ihr Hauptpunkt (Punkt 7, 8 oder 10 px je nach Leistung). */
-  .base { stroke: var(--line); stroke-width: 9; stroke-linecap: round; }
+  .base { stroke: var(--line); stroke-width: 9; }
   g[data-on="1"][data-lvl="2"] .base { stroke-width: 10; }
   g[data-on="1"][data-lvl="3"] .base { stroke-width: 12; }
   g[data-on="1"] .base { stroke: color-mix(in srgb, var(--c) 35%, transparent); }
@@ -359,8 +361,10 @@
     if (!S) return;
     const f = $('flow').getBoundingClientRect();
     const box = key => {
-      const r = $('n-' + key).querySelector('.c').getBoundingClientRect();
-      return { k: key, x: r.left - f.left + r.width / 2, y: r.top - f.top + r.height / 2, r: r.width / 2 };
+      const node = $('n-' + key), r = node.querySelector('.c').getBoundingClientRect();
+      // Die Linie endet knapp unter dem Rand des Kreises, bei einem Ring unter dem Ringband.
+      const ring = node.querySelector('.ring') && !node.classList.contains('nosoc');
+      return { k: key, x: r.left - f.left + r.width / 2, y: r.top - f.top + r.height / 2, r: r.width / 2 + (ring ? 5 : -1) };
     };
     // Jede Linie ist ein Streckenzug; Ecken werden abgerundet, damit Linie und Punkte um die Ecke laufen.
     const L = [];
@@ -497,7 +501,7 @@
     }
     S = msg;
     render();
-    const now = JSON.stringify(msg.knoten);
+    const now = JSON.stringify([msg.knoten, msg.soc === null, msg.socWallbox == null, !(msg.waermeMax > 0)]);
     if (now !== nodes) { nodes = now; sizes(); layout(); } else { flows(); }
   }
 
