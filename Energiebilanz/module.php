@@ -110,6 +110,7 @@ class Energiebilanz extends IPSModuleStrict
         $this->RegisterPropertyFloat('WpAktivW', 200.0);
         $this->RegisterPropertyInteger('Var_soc', 0);
         $this->RegisterPropertyInteger('Var_soc_wallbox', 0);
+        $this->RegisterPropertyFloat('WpWaermeMaxW', 0.0);
         $this->RegisterPropertyBoolean('Animation', true);
         $this->SetVisualizationType(defined('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN') ? INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN : 1);
         $this->RegisterAttributeString('Zustand', '');
@@ -464,6 +465,7 @@ class Energiebilanz extends IPSModuleStrict
                     ['type' => 'SelectVariable', 'name' => 'WpModus', 'caption' => $this->Translate('Operating mode (bool)'), 'width' => '420px', 'validVariableTypes' => [0]],
                     ['type' => 'CheckBox', 'name' => 'WpModusWwIstTrue', 'caption' => $this->Translate('true means hot water')],
                     ['type' => 'NumberSpinner', 'name' => 'WpAktivW', 'caption' => $this->Translate('Running from'), 'suffix' => ' W', 'digits' => 0],
+                    ['type' => 'NumberSpinner', 'name' => 'WpWaermeMaxW', 'caption' => $this->Translate('Maximum heat output (ring in the tile, 0 = no ring)'), 'suffix' => ' W', 'digits' => 0, 'minimum' => 0],
                 ]],
                 ['type' => 'ExpansionPanel', 'caption' => $this->Translate('Calculation'), 'items' => [
                     ['type' => 'CheckBox', 'name' => 'SpeicherImAc', 'caption' => $this->Translate('Battery is included in the inverter AC meter (hybrid inverter)')],

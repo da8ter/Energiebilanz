@@ -7,7 +7,7 @@
   const base = {
     type: 'state',
     w: { pv: 4800, pv1: 3600, pv2: 1200, netz: -1200, speicher: 1500, haus: 2100, wp: 850, heizstab: 0, wallbox: 0, rest: 1250 },
-    soc: 68, socWallbox: 80, cop: 4.2, az: 3.9, autarkie: 83, eigenquote: 57,
+    soc: 68, socWallbox: 80, waerme: 3250, waermeMax: 6500, cop: 4.2, az: 3.9, autarkie: 83, eigenquote: 57,
     tag: { pv: 18.4, haus: 12.6, bezug: 2.1, einspeisung: 7.9, kosten: 0.63, erloes: 0.63, ersparnis: 3.15 },
     knoten: { pv2: true, speicher: true, wp: true, heizstab: true, wallbox: true },
     schwelle: 20, animation: true,
@@ -31,6 +31,7 @@
     check('Tempo nach Leistung: PV 4,8 kW schneller als Speicher 1,5 kW schneller als WP 850 W', rate('pv') > rate('speicher') && rate('speicher') > rate('c-wp') && rate('pv') > 2 && rate('c-wp') < 1.5);
     check('Tempo liegt an der laufenden Animation an, nicht nur am Attribut', matchMedia('(prefers-reduced-motion: reduce)').matches || seg('pv').children[1].getAnimations().length === 1);
     check('Wallbox: Ladestand des Fahrzeugs als Ring und Text', $('soc-wallbox').getAttribute('stroke-dasharray') === '80 100' && $('d-wallbox').textContent === '80 %' && !$('n-wallbox').classList.contains('nosoc'));
+    check('Wärmepumpe: Wärmeleistung 3,25 von 6,5 kW als halber Ring und Text', $('soc-wp').getAttribute('stroke-dasharray') === '50 100' && /^Heat 3[.,]3 kW$/.test($('h-wp').textContent));
     check('Kennzahlen: Ring 83 %, Ersparnis 3,15 €', $('r-autarkie').getAttribute('stroke-dasharray') === '83 100' && /^3[.,]15 €$/.test($('g-ersparnis').textContent));
 
     send({ w: { netz: 800, speicher: -900 } });
@@ -49,7 +50,10 @@
     send({ w: { netz: 10, speicher: 0 } });
     check('Gleiche Nachricht noch einmal: Linien bleiben stehen', $('lines').innerHTML === lines);
 
-    send({ socWallbox: null });
+    send({ waerme: 9000 });
+    check('Wärmeleistung über dem Höchstwert: Ring voll, nicht darüber', $('soc-wp').getAttribute('stroke-dasharray') === '100 100');
+    send({ socWallbox: null, waerme: null, waermeMax: null });
+    check('Wärmepumpe ohne Höchstwert: kein Ring, kein Text', $('n-wp').classList.contains('nosoc') && $('h-wp').textContent === '');
     check('Wallbox ohne Ladestand: kein Ring, kein Text', $('n-wallbox').classList.contains('nosoc') && $('d-wallbox').textContent === '');
 
     send({ animation: false });

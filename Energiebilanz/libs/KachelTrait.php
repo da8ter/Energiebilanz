@@ -15,7 +15,7 @@ trait KachelTrait
     private const KACHEL_TEXTE = [
         'Photovoltaics', 'Grid', 'Grid import', 'Feeding in', 'Battery', 'charging', 'discharging',
         'Heat pump', 'Wallbox', 'Heating rod', 'Other', 'PV', 'PV today', 'Consumption', 'Import', 'Export',
-        'Self-sufficiency', 'Self-consumption', 'Savings', 'Revenue', 'Costs', 'COP', 'PF',
+        'Self-sufficiency', 'Self-consumption', 'Savings', 'Revenue', 'Costs', 'COP', 'PF', 'Heat',
     ];
 
     public function GetVisualizationTile(): string
@@ -46,6 +46,9 @@ trait KachelTrait
         $tag = BilanzRechner::tageswerte(is_array($stand) ? $stand : [], $this->ReadPropertyBoolean('SpeicherImAc'));
         // Der Ladestand des Fahrzeugs ist nur Anzeige: direkt vom Eingang, ohne eigene Variable.
         $auto = $this->Lesen($this->ReadPropertyInteger('Var_soc_wallbox'));
+        // Ring der Wärmepumpe: Wärmeleistung gegen die eingestellte Höchstleistung, nur mit gebundener Wärmeleistung.
+        $waermeMax = $this->ReadPropertyFloat('WpWaermeMaxW');
+        $mitWaerme = $waermeMax > 0 && ($gebunden('W_waerme_heiz') || $gebunden('W_waerme_ww'));
         $w = [];
         foreach (['pv', 'pv1', 'pv2', 'netz', 'speicher', 'haus', 'wp', 'heizstab', 'wallbox', 'rest'] as $k) {
             $w[$k] = (int)round($wert(strtoupper($k) . '_W'));
@@ -55,6 +58,8 @@ trait KachelTrait
             'w'          => $w,
             'soc'        => $gebunden('Var_soc') ? (int)round($wert('SPEICHER_SOC')) : null,
             'socWallbox' => $auto === null ? null : (int)round(max(0.0, min(100.0, $auto))),
+            'waerme'     => $mitWaerme ? (int)round($wert('WP_WAERME_W')) : null,
+            'waermeMax'  => $mitWaerme ? $waermeMax : null,
             'cop'        => round($wert('WP_COP'), 1),
             'az'         => round($wert('WP_AZ_HEUTE'), 1),
             'autarkie'   => (int)round($wert('AUTARKIE')),

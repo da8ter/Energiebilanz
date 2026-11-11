@@ -3,6 +3,156 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- symcon-icons-shared: Quelle visu-messung/baustein/tile-icons-shared.js, verteilt per verteilen.py -->
+    <script>
+/* symcon-icons-shared v3: Symcons /icons.js läuft einmal im Visu-Hauptfenster statt in jeder Kachel.
+   Ersetzt das Script-Tag für /icons.js im head einer Kachel. Ohne erreichbares Hauptfenster
+   (Symcon-App, direkter Aufruf, PWA) lädt die Kachel icons.js wie bisher. Symcon bleibt unverändert.
+   Steht inline in einem script-Element: niemals ein schließendes Script-Tag in diesen Text schreiben.
+   Quelle: visu-messung/baustein/tile-icons-shared.js, verteilt per verteilen.py - Kopien nicht von Hand ändern. */
+(function () {
+  var w = window, d = document, host = null;
+  try {
+    // Fremder Ursprung wirft schon beim Zugriff auf top.document.
+    if (w.top !== w && w.top.document.head) host = w.top;
+  } catch (e) {
+    host = null;
+  }
+  var slot = host ? host.__symconIcons : null;
+  if (slot && slot.v >= 1 && slot.fa) {
+    teilen(slot.fa, slot.css);
+    return;
+  }
+  // Kein Hauptfenster, oder es lädt icons.js gerade erst: für sich laden wie bisher - synchron,
+  // damit die Kachel-Skripte FontAwesome wie gewohnt vorfinden.
+  d.write('<script src="/icons.js" crossorigin="anonymous"><\/script>'); // sicher: fester Text ohne Eingabe, das bisherige icons.js-Tag
+  if (!host) return;
+  if (!slot) {
+    // Einmal im Hauptfenster nachladen, ohne dass FontAwesome dort das Flutter-DOM anfasst.
+    try {
+      // Slot und Konfiguration als Objekte des Hauptfensters: ein Objekt dieser Kachel hielte sie
+      // (samt Dokument) fest, solange das Hauptfenster lebt. Aus demselben Grund lösen die Lade-Handler
+      // sich nach dem Laden selbst.
+      slot = new host.Object();
+      slot.v = 1;
+      slot.fa = null;
+      slot.css = '';
+      slot.fehler = false;
+      host.__symconIcons = slot;
+      var config = new host.Object();
+      config.autoReplaceSvg = false;
+      config.observeMutations = false;
+      config.autoAddCss = false;
+      host.FontAwesomeConfig = config;
+      var s = host.document.createElement('script');
+      s.src = '/icons.js';
+      s.onload = function () {
+        if (host.FontAwesome && host.FontAwesome.dom) {
+          slot.css = host.FontAwesome.dom.css();
+          slot.fa = host.FontAwesome;
+        } else {
+          slot.fehler = true;
+        }
+        s.onload = s.onerror = null;
+      };
+      s.onerror = function () {
+        slot.fehler = true;
+        s.onload = s.onerror = null;
+      };
+      host.document.head.appendChild(s);
+    } catch (e) {
+      return; // Hauptfenster nimmt kein Skript an: die Kachel bleibt beim eigenen icons.js.
+    }
+  }
+  // Kacheln kommen beim ersten Laden fast gleichzeitig: bis das Hauptfenster bereit ist, arbeitet
+  // die eigene Kopie, danach wechselt die Kachel auf die geteilte und gibt ihre eigene frei.
+  var versuche = 0;
+  var abwarten = function () {
+    if (slot.fa && d.readyState !== 'loading') {
+      wechseln(slot);
+    } else if (!slot.fehler && ++versuche <= 100) {
+      setTimeout(abwarten, 100);
+    }
+  };
+  setTimeout(abwarten, 100);
+
+  function wechseln(slot) {
+    var eigen = w.FontAwesome;
+    if (!eigen || eigen === slot.fa) return;
+    try {
+      eigen.noAuto(); // stoppt den Beobachter der eigenen Kopie
+    } catch (e) {
+      return; // eigene Kopie lässt sich nicht anhalten: bei ihr bleiben statt doppelt zu wandeln
+    }
+    // Alle drei Globalen von icons.js lösen, sonst hält FontAwesomeConfig (Getter/Setter) die Kopie fest
+    var namen = ['FontAwesome', '___FONT_AWESOME___', 'FontAwesomeConfig'];
+    for (var i = 0; i < namen.length; i++) {
+      try {
+        delete w[namen[i]];
+      } catch (e) {
+        w[namen[i]] = undefined;
+      }
+    }
+    teilen(slot.fa, slot.css);
+  }
+
+  function teilen(fa, css) {
+    w.FontAwesome = fa; // findIconDefinition/i2svg der Kachel-Skripte laufen unverändert weiter
+    var st = d.createElement('style');
+    st.textContent = css;
+    (d.head || d.documentElement).appendChild(st);
+    var wandeln = function (knoten) {
+      try {
+        fa.dom.i2svg({ node: knoten });
+      } catch (e) {
+        // Knoten schon entfernt oder Hauptfenster weg: nichts zu zeichnen.
+      }
+    };
+    // Eigener Beobachter im Fenster der Kachel: er endet mit ihr (dom.watch im Hauptfenster hielte
+    // alte Kachel-Dokumente fest). Wie bei icons.js: neue Knoten und Klassenwechsel am gezeichneten SVG.
+    var start = function () {
+      wandeln(d.body);
+      new MutationObserver(function (liste) {
+        var ziele = [];
+        for (var i = 0; i < liste.length; i++) {
+          var m = liste[i], t = m.target;
+          if (m.type === 'childList') {
+            if (m.addedNodes.length && ziele.indexOf(t) < 0) ziele.push(t);
+          } else if (t.getAttribute && t.getAttribute('data-fa-i2svg') !== null && anderesIcon(t)) {
+            neuZeichnen(t);
+          }
+        }
+        for (var j = 0; j < ziele.length; j++) {
+          if (ziele[j].isConnected) wandeln(ziele[j]);
+        }
+      }).observe(d.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    };
+    if (d.body) {
+      start();
+    } else {
+      d.addEventListener('DOMContentLoaded', start);
+    }
+  }
+
+  // Nennen die Klassen des SVG ein anderes Icon als das gezeichnete (data-icon)?
+  function anderesIcon(svg) {
+    return (' ' + (svg.getAttribute('class') || '') + ' ').indexOf(' fa-' + svg.getAttribute('data-icon') + ' ') < 0;
+  }
+
+  // SVG durch ein <i> mit seinen Klassen ersetzen; der Beobachter zeichnet es neu.
+  function neuZeichnen(svg) {
+    if (!svg.parentNode) return;
+    var klassen = (svg.getAttribute('class') || '').replace(/(^|\s)svg-inline--fa(?=\s|$)/g, ' ').trim();
+    if (!/(^|\s)(fa-(light|brands|kit|solid|regular|thin|duotone|sharp)|fa[lbkrstd])(\s|$)/.test(klassen)) {
+      klassen += ' ' + (svg.getAttribute('data-prefix') || 'fal'); // icons.js lässt die Stilklasse am SVG weg
+    }
+    var ersatz = d.createElement('i');
+    ersatz.className = klassen;
+    svg.parentNode.replaceChild(ersatz, svg);
+  }
+})();
+    </script>
+    <!-- /symcon-icons-shared -->
 <style>
   html, body { margin: 0; height: 100%; }
   body { width: auto; background: transparent; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--content-color); }
@@ -34,7 +184,7 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 14%, transparent);
   }
-  .c svg.ic { width: calc(var(--d) * .28); height: calc(var(--d) * .28); stroke: var(--c); }
+  .c .ic { font-size: calc(var(--d) * .27); color: var(--c); }
   .c b { font-size: calc(var(--d) * .19); font-weight: 700; white-space: nowrap; }
   #n-haus .c { width: calc(var(--d) * 1.22); height: calc(var(--d) * 1.22); --c: var(--content-color); background: var(--soft); }
   #n-haus .c b { font-size: calc(var(--d) * .22); }
@@ -43,8 +193,7 @@
   .node.bezug { --c: var(--bezug); }
   .node.einsp { --c: var(--einsp); }
   .node.idle .c { border-color: var(--line); background: var(--soft); }
-  .node.idle .c svg.ic { stroke: var(--dim); }
-  .ic { fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .node.idle .c .ic { color: var(--dim); }
   .side { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 600; }
   i { font-style: normal; }
   .side small, .cons small { font-size: 10px; font-weight: 400; color: var(--dim); }
@@ -55,10 +204,10 @@
   .ring .trk { stroke: var(--soft); }
   .ring .val { stroke: var(--c); }
   .node.nosoc .ring { display: none; }
-  #n-wallbox:not(.nosoc) .c { margin-bottom: 10px; }
+  #n-wallbox:not(.nosoc) .c, #n-wp:not(.nosoc) .c { margin-bottom: 10px; }
   .cons { width: 25%; min-width: 0; text-align: center; gap: 1px; }
   .cons .c { width: calc(var(--d) * .78); height: calc(var(--d) * .78); margin-bottom: 4px; }
-  .cons .c svg.ic { width: calc(var(--d) * .32); height: calc(var(--d) * .32); }
+  .cons .c .ic { font-size: calc(var(--d) * .3); }
   .cons > b { font-size: 13px; font-weight: 700; }
   .cons.idle > b { color: var(--dim); }
   .cons > span { font-size: 11px; color: var(--dim); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -104,38 +253,28 @@
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute">
-  <symbol id="i-pv" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></symbol>
-  <symbol id="i-netz" viewBox="0 0 24 24"><path d="M12 3L7.5 21M12 3l4.5 18M4.5 8h15M4.5 8v2.5M19.5 8v2.5M8.6 15h6.8M9.8 11.5l5.6 3.5M14.2 11.5L8.6 15"/></symbol>
-  <symbol id="i-haus" viewBox="0 0 24 24"><path d="M3.5 11.5L12 4l8.5 7.5M6 9.8V20h12V9.8M10 20v-5.5h4V20"/></symbol>
-  <symbol id="i-speicher" viewBox="0 0 24 24"><rect x="2.5" y="7.5" width="16.5" height="9" rx="2"/><path d="M21.5 10.5v3M6 10.5v3M9.5 10.5v3"/></symbol>
-  <symbol id="i-wp" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="10" cy="12" r="4"/><path d="M10 8v8M6 12h8M17.5 9v6"/></symbol>
-  <symbol id="i-wallbox" viewBox="0 0 24 24"><path d="M4 16.5v-4l2-5.5h12l2 5.5v4M4 16.5h16M4 12.5h16M6.5 16.5v2.5M17.5 16.5v2.5"/></symbol>
-  <symbol id="i-heizstab" viewBox="0 0 24 24"><path d="M12 3c3.5 4 6 6.500 6 10.500a6 6 0 0 1-12 0c0-2 1-3.500 2.500-5 0 2.500 1 3.500 2 3.500 0-3 .5-6 1.500-9z"/></symbol>
-  <symbol id="i-rest" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
-</svg>
 <div id="app">
   <div id="flow">
     <svg id="lines"></svg>
     <div class="row r1">
       <div class="node" id="n-pv">
-        <div class="c"><svg class="ic"><use href="#i-pv"/></svg><b id="v-pv"></b></div>
+        <div class="c"><i class="ic fa-light fa-solar-panel"></i><b id="v-pv"></b></div>
         <div class="side"><span data-t="Photovoltaics"></span><small id="d-pv"></small></div>
       </div>
     </div>
     <div class="row r2">
-      <div class="node" id="n-netz"><div class="c"><svg class="ic"><use href="#i-netz"/></svg><b id="v-netz"></b></div><span class="lab" id="l-netz"></span></div>
-      <div class="node" id="n-haus"><div class="c"><svg class="ic"><use href="#i-haus"/></svg><b id="v-haus"></b></div></div>
+      <div class="node" id="n-netz"><div class="c"><i class="ic fa-light fa-utility-pole"></i><b id="v-netz"></b></div><span class="lab" id="l-netz"></span></div>
+      <div class="node" id="n-haus"><div class="c"><i class="ic fa-light fa-house"></i><b id="v-haus"></b></div></div>
       <div class="node" id="n-speicher">
-        <div class="c"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="47"/><circle class="val" id="soc" cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="0 100"/></svg><svg class="ic"><use href="#i-speicher"/></svg><b id="v-speicher"></b></div>
+        <div class="c"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="47"/><circle class="val" id="soc" cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="0 100"/></svg><i class="ic fa-light fa-battery-half"></i><b id="v-speicher"></b></div>
         <span class="lab" id="l-speicher"></span>
       </div>
     </div>
     <div class="row r3">
-      <div class="node cons" id="n-wp"><div class="c"><svg class="ic"><use href="#i-wp"/></svg></div><b id="v-wp"></b><span data-t="Heat pump"></span><small id="d-wp"></small></div>
-      <div class="node cons nosoc" id="n-wallbox"><div class="c"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="47"/><circle class="val" id="soc-wallbox" cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="0 100"/></svg><svg class="ic"><use href="#i-wallbox"/></svg></div><b id="v-wallbox"></b><span data-t="Wallbox"></span><small id="d-wallbox"></small></div>
-      <div class="node cons" id="n-heizstab"><div class="c"><svg class="ic"><use href="#i-heizstab"/></svg></div><b id="v-heizstab"></b><span data-t="Heating rod"></span></div>
-      <div class="node cons" id="n-rest"><div class="c"><svg class="ic"><use href="#i-rest"/></svg></div><b id="v-rest"></b><span data-t="Other"></span></div>
+      <div class="node cons nosoc" id="n-wp"><div class="c"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="47"/><circle class="val" id="soc-wp" cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="0 100"/></svg><i class="ic fa-light fa-fan"></i></div><b id="v-wp"></b><span data-t="Heat pump"></span><small id="h-wp"></small><small id="d-wp"></small></div>
+      <div class="node cons nosoc" id="n-wallbox"><div class="c"><svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="47"/><circle class="val" id="soc-wallbox" cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="0 100"/></svg><i class="ic fa-light fa-charging-station"></i></div><b id="v-wallbox"></b><span data-t="Wallbox"></span><small id="d-wallbox"></small></div>
+      <div class="node cons" id="n-heizstab"><div class="c"><i class="ic fa-light fa-heat"></i></div><b id="v-heizstab"></b><span data-t="Heating rod"></span></div>
+      <div class="node cons" id="n-rest"><div class="c"><i class="ic fa-light fa-plug"></i></div><b id="v-rest"></b><span data-t="Other"></span></div>
     </div>
   </div>
   <div class="band" id="band">
@@ -276,6 +415,10 @@
     cls($('n-wallbox'), 'nosoc', auto === null);
     text('d-wallbox', auto === null ? '' : auto + ' %');
     attr($('soc-wallbox'), 'stroke-dasharray', (auto || 0) + ' 100');
+    const heat = S.waermeMax > 0 && typeof S.waerme === 'number' ? Math.max(0, S.waerme) : null;
+    cls($('n-wp'), 'nosoc', heat === null);
+    text('h-wp', heat === null ? '' : t('Heat') + ' ' + watt(heat));
+    attr($('soc-wp'), 'stroke-dasharray', (heat === null ? 0 : Math.min(100, Math.round(heat / S.waermeMax * 100))) + ' 100');
     text('d-wp', [S.cop > 0 ? t('COP') + ' ' + num(S.cop, 1) : '', S.az > 0 ? t('PF') + ' ' + num(S.az, 1) : ''].filter(Boolean).join(' · '));
     ['pv', 'haus', 'bezug', 'einspeisung'].forEach(k => text('t-' + k, num(tag[k], 1)));
     ['autarkie', 'eigenquote'].forEach(k => {
