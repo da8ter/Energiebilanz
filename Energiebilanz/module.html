@@ -355,10 +355,11 @@
     const h = box('haus'), n = box('netz');
     // Jede PV-Anlage hat ihre eigene Linie zum Haus; bei mehreren landen sie nebeneinander auf dem Haus.
     const pvs = (S.knoten.pv2 ? [['pv', 'pv1'], ['pv2', 'pv2']] : [['pv', 'pv']]).map(([k, w]) => Object.assign(box(k), { w })).sort((a, b) => a.x - b.x);
-    const pvGap = Math.min(13, h.r * 0.36), pvLvl = (Math.max(...pvs.map(o => o.y + o.r)) + h.y - h.r) / 2;
+    const pvGap = Math.min(13, h.r * 0.36);
     pvs.forEach((o, i) => {
       const dx = (i - (pvs.length - 1) / 2) * pvGap, ex = h.x + dx, ey = h.y - Math.sqrt(Math.max(0, h.r * h.r - dx * dx));
-      const pts = Math.abs(o.x - ex) < 1 ? [[o.x, o.y + o.r], [ex, ey]] : [[o.x, o.y + o.r], [o.x, pvLvl], [ex, pvLvl], [ex, ey]];
+      // Mehrere Anlagen: seitlich aus dem Kreis zur Mitte hin, dann mit runder Ecke nach unten aufs Haus.
+      const pts = Math.abs(o.x - ex) < 1 ? [[o.x, o.y + o.r], [ex, ey]] : [[o.x + Math.sign(ex - o.x) * o.r, o.y], [ex, o.y], [ex, ey]];
       add(o.k, 'pv', pts, s => s.w[o.w]);
     });
     add('netz', 'netz', [[n.x + n.r, n.y], [h.x - h.r, h.y]], s => s.w.netz);
