@@ -35,6 +35,7 @@
     check('Die Linien starten nebeneinander in der Reihenfolge der Verbraucher', startX('c-wp') < startX('c-wallbox') && startX('c-wallbox') < startX('c-heizstab') && startX('c-heizstab') < startX('c-rest'));
     const rate = k => { const a = seg(k).children[1].getAnimations()[0]; return a ? a.playbackRate : +seg(k).dataset.rate; };
     check('Tempo nach Leistung: PV 4,8 kW schneller als Speicher 1,5 kW schneller als WP 850 W', rate('pv') > rate('speicher') && rate('speicher') > rate('c-wp') && rate('pv') > 2 && rate('c-wp') < 1.5);
+    check('Schweif: drei Striche je Linie, im selben Tempo wie der Punkt', seg('pv').querySelectorAll('.tail').length === 3 && [...seg('pv').querySelectorAll('.tail')].every(e => matchMedia('(prefers-reduced-motion: reduce)').matches || e.getAnimations()[0].playbackRate === rate('pv')));
     check('Tempo liegt an der laufenden Animation an, nicht nur am Attribut', matchMedia('(prefers-reduced-motion: reduce)').matches || seg('pv').children[1].getAnimations().length === 1);
     check('Wallbox: Ladestand des Fahrzeugs als Ring und Text', $('soc-wallbox').getAttribute('stroke-dasharray') === '80 100' && $('d-wallbox').textContent === '80 %' && !$('n-wallbox').classList.contains('nosoc'));
     check('Wärmepumpe: Wärmeleistung 3,25 von 6,5 kW als halber Ring und Text', $('soc-wp').getAttribute('stroke-dasharray') === '50 100' && /^Heat 3[.,]3 kW$/.test($('h-wp').textContent));

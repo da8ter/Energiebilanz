@@ -225,12 +225,22 @@
   .base, .flow { fill: none; stroke-linejoin: round; }
   .base { stroke: var(--line); stroke-width: 4; stroke-linecap: round; }
   g[data-on="1"] .base { stroke: color-mix(in srgb, var(--c) 35%, transparent); }
-  .flow { stroke: var(--c); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 0.1 24; opacity: 0; }
+  .flow { stroke: var(--c); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 0.1 36; opacity: 0; }
   g[data-lvl="1"] .flow { stroke-width: 7; }
   g[data-lvl="3"] .flow { stroke-width: 10; }
-  .anim g[data-on="1"] .flow { opacity: 1; animation: flow 2.4s linear infinite; }
+  .anim g[data-on="1"] .flow { opacity: 1; animation: flow 3.6s linear infinite; }
   .anim g[data-rev="1"] .flow { animation-direction: reverse; }
-  @keyframes flow { to { stroke-dashoffset: -24; } }
+  /* Schweif: drei kürzer werdende, durchscheinende Striche hinter jedem Punkt, im selben Takt wie der Punkt. */
+  .tail { fill: none; stroke: var(--c); stroke-linejoin: round; opacity: 0; }
+  .t1 { stroke-width: 6; stroke-dasharray: 8 28; --o: 8px; }
+  .t2 { stroke-width: 4.5; stroke-dasharray: 15 21; --o: 15px; }
+  .t3 { stroke-width: 3; stroke-dasharray: 22 14; --o: 22px; }
+  .anim g[data-on="1"] .tail { animation: flow 3.6s linear infinite; }
+  .anim g[data-on="1"] .t1 { opacity: .55; }
+  .anim g[data-on="1"] .t2 { opacity: .38; }
+  .anim g[data-on="1"] .t3 { opacity: .24; }
+  .anim g[data-rev="1"] .tail { animation-direction: reverse; --o: 0px; }
+  @keyframes flow { from { stroke-dashoffset: var(--o, 0px); } to { stroke-dashoffset: calc(var(--o, 0px) - 36px); } }
   .arr { fill: none; stroke: var(--c); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; display: none; }
   #app:not(.anim) g[data-on="1"] .arr { display: block; }
 
@@ -255,7 +265,7 @@
   .money b { font-size: 12px; color: var(--content-color); }
   .money .einsp b { color: var(--einsp); }
   .money .bezug b { color: var(--bezug); }
-  @media (prefers-reduced-motion: reduce) { .flow { animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .flow, .tail { animation: none !important; } }
 </style>
 </head>
 <body>
@@ -394,7 +404,7 @@
     }).join('');
     $('lines').innerHTML = L.map(s => {
       const d = path(s.pts);
-      return `<g data-k="${s.k}"><path class="base" d="${d}"/><path class="flow" d="${d}"/><path class="arr" d="M-5-7L4 0l-9 7"/></g>`;
+      return `<g data-k="${s.k}"><path class="base" d="${d}"/><path class="flow" d="${d}"/><path class="tail t1" d="${d}"/><path class="tail t2" d="${d}"/><path class="tail t3" d="${d}"/><path class="arr" d="M-5-7L4 0l-9 7"/></g>`;
     }).join('');
     segs = L.map((s, i) => {
       // Der Pfeil (Animation aus) sitzt in der Mitte des längsten geraden Stücks.
@@ -416,7 +426,7 @@
       // Logarithmisch, damit sich auch 20 W und 500 W deutlich unterscheiden: 0,25-fach bei 20 W, 4-fach ab 15 kW.
       const rate = 0.25 * Math.pow(16, Math.min(1, Math.max(0, Math.log(mag / 20) / Math.log(750))));
       attr(s.g, 'data-rate', rate.toFixed(2));
-      if (on) s.g.children[1].getAnimations().forEach(a => { a.playbackRate = rate; });
+      if (on) s.g.querySelectorAll('.flow, .tail').forEach(e => e.getAnimations().forEach(a => { a.playbackRate = rate; }));
       attr(s.g.lastChild, 'transform', `translate(${s.mx.toFixed(1)} ${s.my.toFixed(1)}) rotate(${(s.a + (rev ? 180 : 0)).toFixed(0)})`);
     });
   }
