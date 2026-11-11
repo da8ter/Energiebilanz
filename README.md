@@ -14,6 +14,16 @@ Tageszähler (z. B. Speicher geladen/entladen) werden als solche markiert: Fäll
 
 PV, Hausverbrauch, Eigenverbrauch und Rest werden erst gebucht, wenn die Speicherzähler nachgezogen haben (Wechselrichter und Speicher werden zu verschiedenen Zeiten gelesen). Ein negativer PV-Zuwachs ist dann der **Wandlungsverlust** beim Entladen und bekommt seinen eigenen Zähler, statt die PV ins Minus zu drücken.
 
+## Kachel
+
+Die Instanz bringt eine eigene Kachel für die Kachel-Visualisierung mit. Sie zeigt den Energiefluss zwischen Photovoltaik, Netz, Speicher und Haus, darunter Wärmepumpe (mit COP und Arbeitszahl heute), Wallbox, Heizstab und den übrigen Haushalt. Die Linien tragen die Farbe ihrer Rolle (Bezug rot, Einspeisung grün) und fließen umso schneller, je höher die Leistung ist; unterhalb der Schwelle für Einspeisung/Bezug ruhen sie.
+
+Unter dem Flussbild stehen die Werte des laufenden Tages: PV, Verbrauch, Bezug und Einspeisung in kWh, Autarkie und Eigenverbrauchsquote sowie Ersparnis, Erlös und Kosten in Euro. Kleine Kacheln zeigen eine gekürzte Zeile, sehr kleine nur das Flussbild.
+
+- Speicher, Wärmepumpe, Heizstab und Wallbox erscheinen nur, wenn ihre Leistung unter *Leistung* gewählt ist.
+- **Ladestand:** Unter *Leistung* lässt sich der Ladestand des Speichers in Prozent wählen. Er erscheint als Ring am Speicher und als Variable *Speicher Ladestand*.
+- **Animation:** Unter *Kachel* lassen sich die fließenden Linien abschalten. Eine laufende Animation kostet am Anzeigegerät etwas Rechenleistung, solange die Kachel sichtbar ist; ausgeschaltet zeigen Pfeile die Richtung.
+
 ## Wärmepumpe
 
 Aus Verdichter- und Heizstab-Strom, den Wärmemengenzählern Heizung und Warmwasser (oder ersatzweise einer Wärme gesamt) und der Betriebsart (Bool: Warmwasser/Heizen) führt die Instanz:
@@ -57,4 +67,5 @@ EBIL_SetzeStartwerte(int $InstanzID, string $Werte): bool
 
 ```
 php Energiebilanz/tests/BilanzRechnerTest.php
+zsh Energiebilanz/tests/tile_test.sh
 ```

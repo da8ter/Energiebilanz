@@ -7,6 +7,7 @@ Projektwissen (Entscheidungen, Fallen): **`.claude/docs/README.md`**. Offenes: `
 ## Aufbau
 
 - **`Energiebilanz/`** (Präfix `EBIL`, Typ 3, `IPSModuleStrict`): `module.php` liest die Eingänge, schreibt Ausgänge, richtet das Archiv ein; Formular in `GetConfigurationForm()` (kein `form.json`).
+- **`Energiebilanz/module.html`** und **`libs/KachelTrait.php`**: die Kachel (Energiefluss, Kennzahlen des Tages), reine Anzeige.
 - **`Energiebilanz/libs/BilanzRechner.php`**: Rechenkern ohne Symcon (Zuwächse, Plausibilität, Sammelkorb, Wärmepumpe, Quoten). Logik gehört hierher, nicht ins Modul.
 - Zustand des Rechenkerns als JSON im Attribut `Zustand`; `EBIL_Zustand($id)` gibt ihn aus.
 - Öffentliche Funktionen: `EBIL_Rechnen`, `EBIL_Zustand`, `EBIL_SetzeStartwerte`.
@@ -16,6 +17,7 @@ Projektwissen (Entscheidungen, Fallen): **`.claude/docs/README.md`**. Offenes: `
 ```bash
 php Energiebilanz/tests/BilanzRechnerTest.php   # endet mit „N Zusicherungen, 0 Abweichung(en).“
 php -l Energiebilanz/module.php
+zsh Energiebilanz/tests/tile_test.sh             # Kachel im eigenen Headless-Chrome, nur PASS-Zeilen
 ```
 
 Jede Änderung am Rechenkern bekommt eine Zusicherung im Prüfstand; Fälle aus dem Betrieb (Ausreißer, Reset auf beliebigen Stand) als Zahlenbeispiel nachbauen. Gegenprobe: Prüfstand ohne den Fix muss rot werden.

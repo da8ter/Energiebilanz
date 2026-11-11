@@ -83,7 +83,26 @@
             "Performance factor hot water today": "Arbeitszahl Warmwasser heute",
             "Performance factor hot water total": "Arbeitszahl Warmwasser gesamt",
             "Compact the archive to one value per minute": "Archiv auf einen Wert pro Minute verdichten",
-            "Battery conversion losses": "Wandlungsverluste Speicher"
+            "Battery conversion losses": "Wandlungsverluste Speicher",
+            "Battery state of charge": "Speicher Ladestand",
+            "Battery state of charge (%)": "Speicher Ladestand (%)",
+            "Tile": "Kachel",
+            "Animate the energy flows (costs some computing power on the display while the tile is visible)": "Energieflüsse animieren (kostet am Anzeigegerät etwas Rechenleistung, solange die Kachel sichtbar ist)",
+            "Photovoltaics": "Photovoltaik",
+            "Grid": "Netz",
+            "Battery": "Speicher",
+            "charging": "lädt",
+            "discharging": "entlädt",
+            "Other": "Sonstiges",
+            "PV today": "PV heute",
+            "Consumption": "Verbrauch",
+            "Import": "Bezug",
+            "Export": "Einspeisung",
+            "Self-sufficiency": "Autarkie",
+            "Savings": "Ersparnis",
+            "Revenue": "Erlös",
+            "Costs": "Kosten",
+            "PF": "AZ"
         }
     }
 }

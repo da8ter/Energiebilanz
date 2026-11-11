@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/libs/BilanzRechner.php';
+require_once __DIR__ . '/libs/KachelTrait.php';
 
 /**
  * Energiebilanz — EINE Stelle für Erzeugung, Verbrauch, Netz, Speicher,
@@ -16,6 +17,8 @@ require_once __DIR__ . '/libs/BilanzRechner.php';
  */
 class Energiebilanz extends IPSModuleStrict
 {
+    use KachelTrait;
+
     private const ARCHIVE_GUID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
 
     /** Zähler-Eingänge: Rolle => [Beschriftung, Tageszähler-Vorgabe, Höchstleistung kW]. */
@@ -41,7 +44,7 @@ class Energiebilanz extends IPSModuleStrict
         'waerme_heiz' => 'Heat pump heating output', 'waerme_ww' => 'Heat pump hot water output',
     ];
 
-    /** Ausgänge: Ident => [Name, Typ (kwh|eur|w|pct), Position]. */
+    /** Ausgänge: Ident => [Name, Typ (kwh|eur|w|zahl|soc|pct), Position]. */
     private const AUSGABE = [
         'PV_KWH' => ['PV generation', 'kwh', 50], 'HAUS_KWH' => ['House consumption', 'kwh', 51],
         'EIGEN_KWH' => ['Self-consumption', 'kwh', 52], 'BEZUG_KWH' => ['Grid import', 'kwh', 53],
@@ -62,6 +65,7 @@ class Energiebilanz extends IPSModuleStrict
         'WP_AZ_HEUTE' => ['Heat pump performance factor today', 'zahl', 32], 'WP_AZ_GESAMT' => ['Heat pump performance factor total', 'zahl', 79],
         'WP_AZ_HEIZ_HEUTE' => ['Performance factor heating today', 'zahl', 33], 'WP_AZ_HEIZ_GESAMT' => ['Performance factor heating total', 'zahl', 80],
         'WP_AZ_WW_HEUTE' => ['Performance factor hot water today', 'zahl', 34], 'WP_AZ_WW_GESAMT' => ['Performance factor hot water total', 'zahl', 81],
+        'SPEICHER_SOC' => ['Battery state of charge', 'soc', 23],
     ];
 
     /** Frühere Namen, die beim Update umbenannt werden — eigene Umbenennungen des Nutzers bleiben stehen. */
@@ -104,6 +108,9 @@ class Energiebilanz extends IPSModuleStrict
         $this->RegisterPropertyInteger('WpModus', 0);
         $this->RegisterPropertyBoolean('WpModusWwIstTrue', true);
         $this->RegisterPropertyFloat('WpAktivW', 200.0);
+        $this->RegisterPropertyInteger('Var_soc', 0);
+        $this->RegisterPropertyBoolean('Animation', true);
+        $this->SetVisualizationType(defined('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN') ? INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN : 1);
         $this->RegisterAttributeString('Zustand', '');
         // Welche Positionsordnung zuletzt angewandt wurde — die Sortierung des Nutzers
         // in der Konsole bleibt bestehen, bis das Modul eine NEUE Ordnung mitbringt.
@@ -174,6 +181,9 @@ class Energiebilanz extends IPSModuleStrict
         $fehlt = $this->ReadPropertyInteger('Var_pv1') <= 0 && $this->ReadPropertyInteger('Var_bezug') <= 0;
         $this->SetStatus($fehlt ? 104 : 102);
         $this->SetTimerInterval('Rechnen', $fehlt ? 0 : max(5, $this->ReadPropertyInteger('Intervall')) * 1000);
+        // Offene Kacheln neu laden: Knoten und Texte hängen an der Konfiguration.
+        $this->SetBuffer('Kachel', '');
+        $this->UpdateVisualizationValue((string)json_encode(['type' => 'reload']));
         if (!$fehlt) {
             $this->Rechnen();
         }
@@ -275,6 +285,12 @@ class Energiebilanz extends IPSModuleStrict
         $q = BilanzRechner::tagesquoten($stand, $opt['speicherImAc']);
         $this->Setzen('AUTARKIE', round((float)($q['autarkie'] ?? 0.0), 1));
         $this->Setzen('EIGENQUOTE', round((float)($q['eigenquote'] ?? 0.0), 1));
+
+        $soc = $this->Lesen($this->ReadPropertyInteger('Var_soc'));
+        if ($soc !== null) {
+            $this->Setzen('SPEICHER_SOC', round(max(0.0, min(100.0, $soc)), 1));
+        }
+        $this->KachelSenden();
     }
 
     /** Der Zustand des Rechenkerns als JSON — für Fehlersuche und Prüfung. */
@@ -344,6 +360,7 @@ class Energiebilanz extends IPSModuleStrict
             $ids[] = $this->ReadPropertyInteger('W_' . $rolle);
         }
         $ids[] = $this->ReadPropertyInteger('WpModus');
+        $ids[] = $this->ReadPropertyInteger('Var_soc');
         return array_values(array_unique(array_filter($ids, static fn(int $v): bool => $v > 0)));
     }
 
@@ -400,6 +417,7 @@ class Energiebilanz extends IPSModuleStrict
             'kwh' => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Electricity', 'SUFFIX' => ' kWh', 'DIGITS' => 2],
             'eur' => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Euro', 'SUFFIX' => ' €', 'DIGITS' => 2],
             'w'   => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Electricity', 'SUFFIX' => ' W', 'DIGITS' => 0],
+            'soc' => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'battery-half', 'SUFFIX' => ' %', 'DIGITS' => 0],
             'zahl' => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Gauge', 'DIGITS' => 2],
             default => ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON' => 'Intensity', 'SUFFIX' => ' %', 'DIGITS' => 1],
         };
@@ -435,7 +453,9 @@ class Energiebilanz extends IPSModuleStrict
                 ], $zaehler)],
                 ['type' => 'ExpansionPanel', 'caption' => $this->Translate('Power (W)'), 'items' => array_merge([
                     ['type' => 'Label', 'caption' => $this->Translate('Factor: 1000 for kW, −1 to flip the sign. Grid: + is import. Battery: + is charging.')],
-                ], $leistung)],
+                ], $leistung, [
+                    ['type' => 'SelectVariable', 'name' => 'Var_soc', 'caption' => $this->Translate('Battery state of charge (%)'), 'width' => '420px', 'validVariableTypes' => [1, 2]],
+                ])],
                 ['type' => 'ExpansionPanel', 'caption' => $this->Translate('Heat pump'), 'items' => [
                     ['type' => 'Label', 'caption' => $this->Translate('Electricity and heat are booked to heating or hot water by operating mode. In heating mode below the threshold the electricity counts as standby.')],
                     ['type' => 'SelectVariable', 'name' => 'WpModus', 'caption' => $this->Translate('Operating mode (bool)'), 'width' => '420px', 'validVariableTypes' => [0]],
@@ -450,6 +470,9 @@ class Energiebilanz extends IPSModuleStrict
                     ['type' => 'NumberSpinner', 'name' => 'Intervall', 'caption' => $this->Translate('Interval'), 'suffix' => ' s', 'minimum' => 5],
                     ['type' => 'CheckBox', 'name' => 'Archivieren', 'caption' => $this->Translate('Set up archive logging for the outputs')],
                     ['type' => 'CheckBox', 'name' => 'VerdichtungMinute', 'caption' => $this->Translate('Compact the archive to one value per minute')],
+                ]],
+                ['type' => 'ExpansionPanel', 'caption' => $this->Translate('Tile'), 'items' => [
+                    ['type' => 'CheckBox', 'name' => 'Animation', 'caption' => $this->Translate('Animate the energy flows (costs some computing power on the display while the tile is visible)')],
                 ]],
             ],
             'actions' => [

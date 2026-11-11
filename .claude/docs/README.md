@@ -8,10 +8,13 @@ Jede Datei endet mit „Stand: geprüft gegen den Code am …“. Ändert ein Co
 
 - [rechenkern](entscheidungen/rechenkern.md) – Zuwächse statt Stände, Plausibilität, Tageszähler-Reset, Sammelkorb, Wandlungsverluste, Archiv
 - [waermepumpe](entscheidungen/waermepumpe.md) – Buchung nach Betriebsart, Stand-by, Heizstab, Wärmezähler, Arbeitszahlen
+- [kachel](entscheidungen/kachel.md) – Energiefluss-Kachel: Nabenmodell, Dauer-Animation als Nutzerwahl, Tageswerte aus dem Rechenkern, Ladestand
 
 ## Testen
 
 `php Energiebilanz/tests/BilanzRechnerTest.php` – Rechenkern ohne Symcon, mit den Fällen aus dem Betrieb (Ausreißer 0 → Zählerstand → zurück, Reset auf beliebigen Stand, Zählertausch).
+
+`zsh Energiebilanz/tests/tile_test.sh` – Kachel in einem eigenen Headless-Chrome: Flussrichtungen, ruhende und fehlende Knoten, Animation aus, doppelte Zustellung.
 
 ## Symcon-Plattform
 
@@ -21,4 +24,4 @@ Gemessenes Symcon-Verhalten für alle Module: https://github.com/da8ter/SymDo-Fa
 
 [stand.md](stand.md) – offene Punkte und Widersprüche zwischen Kommentar und Verhalten.
 
-Stand: geprüft gegen den Code am 08.10.2026
+Stand: geprüft gegen den Code am 11.11.2026
