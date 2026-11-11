@@ -32,6 +32,8 @@
     const d = k => seg(k).children[1].getAttribute('d');
     const startX = k => parseFloat(d(k).slice(1));
     check('Jeder Verbraucher hat seine eigene Linie ab dem Haus, mit runden Ecken und ohne Sammelschiene', ['wp', 'wallbox', 'heizstab', 'rest'].every(k => (d('c-' + k).match(/Q/g) || []).length === 2) && !seg('trunk'));
+    const lvl = k => parseFloat(d('c-' + k).split('Q')[1].split(' ')[1]);
+    check('Vier Verbraucher: die beiden Linien einer Seite liegen mindestens 20 px auseinander', lvl('wallbox') - lvl('wp') >= 20 && lvl('heizstab') - lvl('rest') >= 20);
     check('Die Linien starten nebeneinander in der Reihenfolge der Verbraucher', startX('c-wp') < startX('c-wallbox') && startX('c-wallbox') < startX('c-heizstab') && startX('c-heizstab') < startX('c-rest'));
     const rate = k => { const a = seg(k).children[1].getAnimations()[0]; return a ? a.playbackRate : +seg(k).dataset.rate; };
     check('Tempo nach Leistung: PV 4,8 kW schneller als Speicher 1,5 kW schneller als WP 850 W', rate('pv') > rate('speicher') && rate('speicher') > rate('c-wp') && rate('pv') > 2 && rate('c-wp') < 1.5);
@@ -42,6 +44,7 @@
     const bw = id => $(id).style.width;
     check('Tagesbalken: PV 18,4 = Eigenverbrauch 10,5 + Einspeisung 7,9; Verbrauch 12,6 = eigener Strom 10,5 + Bezug 2,1', bw('b-eigenpv') === '57.1%' && bw('b-einspeisung') === '42.9%' && bw('b-eigenhaus') === '57.1%' && bw('b-bezug') === '11.4%' && /^10[.,]5$/.test($('t-eigenpv').textContent) && /^18[.,]4 kWh$/.test($('t-pv').textContent));
     check('Geldbalken: Ersparnis voll, Erlös und Kosten je ein Fünftel', bw('b-ersparnis') === '100%' && bw('b-erloes') === '20%' && bw('b-kosten') === '20%');
+    check('Gekürzte Zeile: die Zahlen haben keinen Balkengrund geerbt', getComputedStyle(document.querySelector('#bandS .st.acc')).backgroundColor === 'rgba(0, 0, 0, 0)');
     check('Kennzahlen: Ring 83 %, Ersparnis 3,15 €', $('r-autarkie').getAttribute('stroke-dasharray') === '83 100' && /^3[.,]15 €$/.test($('g-ersparnis').textContent));
 
     send({ w: { netz: 800, speicher: -900 } });

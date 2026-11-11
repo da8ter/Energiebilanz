@@ -168,9 +168,11 @@
   #flow {
     position: relative; flex: 1; min-height: 0; container-type: size;
     display: flex; flex-direction: column; justify-content: space-between; padding: 2px 4% 0;
-    --d: clamp(44px, min(21cqh, 17cqw), 76px);
+    /* Kreisgröße aus der Höhe: drei Reihen Kreise plus Beschriftungen und Abstände müssen hineinpassen. */
+    --d: clamp(40px, min(calc((100cqh - 140px) / 3), 17cqw), 76px);
   }
-  #app.nocons #flow { --d: clamp(44px, min(28cqh, 19cqw), 76px); justify-content: space-around; }
+  #app.lv2 #flow { --d: clamp(40px, min(calc((100cqh - 170px) / 3), 17cqw), 76px); }
+  #app.nocons #flow { --d: clamp(40px, min(calc((100cqh - 80px) / 2.4), 19cqw), 76px); justify-content: space-around; }
   #lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
   .row { position: relative; display: flex; justify-content: space-between; align-items: center; }
   .r1 { flex-direction: column; justify-content: center; gap: 6px; }
@@ -180,6 +182,8 @@
   #app.multi .pvsum { display: block; }
   #app.multi .side, #app:not(.multi) #n-pv2 { display: none; }
   .r2 { margin-bottom: 1.5em; }
+  /* Vier Verbraucher: je Seite zwei Linien übereinander, die brauchen Platz zwischen Haus und Verbrauchern. */
+  #app.lv2:not(.nocons) .r2 { margin-bottom: 56px; }
   .r3 { justify-content: space-around; align-items: flex-start; }
   #app.nocons .r3 { display: none; }
   .node { position: relative; display: flex; flex-direction: column; align-items: center; --c: var(--accent-color); }
@@ -276,10 +280,10 @@
   .bt { display: flex; height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
   .bt i { display: block; height: 100%; width: 0; transition: width .4s ease; }
   .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
-  .eig { background: var(--pv); }
-  .ein { background: var(--einsp); }
-  .bez { background: var(--bezug); }
-  .acc { background: var(--accent-color); }
+  .bt .eig, .dot.eig { background: var(--pv); }
+  .bt .ein, .dot.ein { background: var(--einsp); }
+  .bt .bez, .dot.bez { background: var(--bezug); }
+  .bt .acc { background: var(--accent-color); }
   @media (prefers-reduced-motion: reduce) { .flow, .tail { animation: none !important; } }
 </style>
 </head>
@@ -363,6 +367,7 @@
     const w = innerWidth, h = innerHeight;
     cls(app, 'nocons', !S || !shown('rest') || h < 380);
     cls(app, 'short', w < 520);
+    cls(app, 'lv2', !!S && CONS.filter(shown).length > 3);
     cls(app, 'noband', h < 230);
   }
 
@@ -400,7 +405,7 @@
       const c = CONS.filter(shown).map(box).sort((a, b) => a.x - b.x);
       const from = h.y + h.r, top = Math.min(...c.map(o => o.y - o.r));
       const gap = Math.min(17, h.r * 0.5);
-      const depth = side => side.forEach((o, i) => { o.lvl = from + (top - from) * (i + 1) / (side.length + 1); });
+      const depth = side => side.forEach((o, i) => { o.lvl = from + (top - from) * (i + 0.5) / side.length; });
       depth(c.filter(o => o.x < h.x - 1));
       depth(c.filter(o => o.x > h.x + 1).reverse());
       c.forEach((o, i) => {
